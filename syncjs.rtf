@@ -1,0 +1,43 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 const \{ MongoClient \} = require('mongodb');\
+const axios = require('axios');\
+require('dotenv').config();\
+\
+const mongoUri = process.env.MONGO_URI;\
+\
+async function syncDataWithDitto() \{\
+    const client = new MongoClient(mongoUri, \{ useNewUrlParser: true, useUnifiedTopology: true \});\
+\
+    try \{\
+        // Connect to MongoDB\
+        await client.connect();\
+        const database = client.db('testdb');\
+        const collection = database.collection('users');\
+\
+        // Fetch data from MongoDB\
+        const users = await collection.find(\{\}).toArray();\
+        console.log('Fetched users:', users);\
+\
+        // Push data to Ditto (replace <ditto-api-url> and <ditto-api-key>)\
+        const dittoResponse = await axios.post(\
+            'https://api.ditto.live/v1/sync',\
+            \{ data: users \},\
+            \{ headers: \{ 'Authorization': 'Bearer <ditto-api-key>' \} \}\
+        );\
+\
+        console.log('Ditto sync response:', dittoResponse.data);\
+    \} catch (err) \{\
+        console.error('Error syncing data:', err);\
+    \} finally \{\
+        await client.close();\
+    \}\
+\}\
+\
+syncDataWithDitto();\
+}
