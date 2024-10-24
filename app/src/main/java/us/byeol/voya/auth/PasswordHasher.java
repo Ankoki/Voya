@@ -1,9 +1,5 @@
 package us.byeol.voya.auth;
 
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
-
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.security.GeneralSecurityException;
@@ -14,7 +10,6 @@ import java.util.Base64;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@RequiresApi(api = Build.VERSION_CODES.O)
 public final class PasswordHasher {
 
     private static final int COST = 16, KEY_LENGTH = 128;

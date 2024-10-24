@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
                 properties.getProperty("ditto_app_id"),
                 properties.getProperty("ditto_playground_token")
         );
-        IOHandler.initiate(new Ditto(dependencies, identity), properties.getProperty("dropbox_access_token"));
+        IOHandler.initiate(new Ditto(dependencies, identity), properties.getProperty("dropbox_access_token"), properties.getProperty("voya_token"));
         SharedPreferences preferences = this.getApplicationContext().getSharedPreferences("userdata", 0);
         String user = preferences.getString("username", "");
         long lastAuth = preferences.getLong("last-authentication", System.currentTimeMillis());

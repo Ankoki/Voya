@@ -48,10 +48,10 @@ public class LoginActivity extends AppCompatActivity {
                                 .putString("username", usernameInput.getText().toString())
                                 .putLong("last-authentication", System.currentTimeMillis())
                                 .apply();
-                        PopUp.instance.showText(view, "You have been logged in!", PopUp.Length.LENGTH_LONG);
+                        PopUp.instance.showText(view, getString(R.string.logged_in), PopUp.Length.LENGTH_LONG);
                         this.startActivity(new Intent(this.getBaseContext(), MainActivity.class));
                     } else
-                        PopUp.instance.showText(this.findViewById(android.R.id.content), "Authentication Failed", PopUp.Length.LENGTH_LONG);
+                        PopUp.instance.showText(this.findViewById(android.R.id.content), getString(R.string.incorrect_password), PopUp.Length.LENGTH_LONG);
                 }
             });
         }

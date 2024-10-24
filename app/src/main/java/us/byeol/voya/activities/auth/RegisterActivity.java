@@ -1,16 +1,22 @@
 package us.byeol.voya.activities.auth;
 
 import android.os.Bundle;
+import android.util.Pair;
 import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.security.GeneralSecurityException;
+
 import us.byeol.voya.R;
+import us.byeol.voya.auth.PasswordHasher;
+import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
 import us.byeol.voya.misc.popup.PopUp;
 import us.byeol.voya.auth.AuthValidator;
+import us.byeol.voya.storage.IOHandler;
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -25,23 +31,52 @@ public class RegisterActivity extends AppCompatActivity {
         EditText confirmPasswordInput = this.findViewById(R.id.confirm_password_field);
         Button registerButton = this.findViewById(R.id.register_button);
         registerButton.setOnClickListener(view -> {
+            String fullName = fullNameInput.getText().toString();
+            String username = usernameInput.getText().toString();
+            String password = passwordInput.getText().toString();
+            String confirmPassword = confirmPasswordInput.getText().toString();
             if (!AuthValidator.hasInternet(this))
                 PopUp.instance.showText(view, getString(R.string.no_internet), PopUp.Length.LENGTH_LONG);
-            else if (fullNameInput.getText().toString().isEmpty() || fullNameInput.getText().toString().isBlank() ||
-                    usernameInput.getText().toString().isEmpty() || usernameInput.getText().toString().isBlank() ||
-                    passwordInput.getText().toString().isEmpty() || passwordInput.getText().toString().isBlank() ||
-                    confirmPasswordInput.getText().toString().isEmpty() || confirmPasswordInput.getText().toString().isBlank())
+            else if (fullName.isEmpty() || fullName.isBlank() ||
+                    username.isEmpty() || username.isBlank() ||
+                    password.isEmpty() || password.isBlank() ||
+                    confirmPassword.isEmpty() || confirmPassword.isBlank())
                 PopUp.instance.showText(view, getString(R.string.empty_fields), PopUp.Length.LENGTH_LONG);
-            else if (!fullNameInput.getText().toString().contains(" "))
+            else if (!fullName.contains(" "))
                 PopUp.instance.showText(view, getString(R.string.invalid_fullname), PopUp.Length.LENGTH_LONG);
-            else if (!AuthValidator.isValidUsername(usernameInput.getText().toString()))
+            else if (!AuthValidator.isValidUsername(username))
                 PopUp.instance.showText(view, getString(R.string.invalid_username), PopUp.Length.LENGTH_LONG);
-            else if (!AuthValidator.isValidPassword(passwordInput.getText().toString()))
+            else if (!AuthValidator.isValidPassword(password))
                 PopUp.instance.showText(view, getString(R.string.invalid_password), PopUp.Length.LENGTH_LONG);
-            else if (!passwordInput.getText().toString().equals(confirmPasswordInput.getText().toString()))
+            else if (!password.equals(confirmPassword))
                 PopUp.instance.showText(view, getString(R.string.mismatching_passwords), PopUp.Length.LENGTH_LONG);
             else {
-                // Smth
+                Pair<IOHandler.Response, Boolean> availablePair = IOHandler.getInstance().isAvailable(username);
+                if (availablePair.first != IOHandler.Response.SUCCESS) {
+                    switch (availablePair.first) {
+                        case NO_RESPONSE:
+                        case EXCEPTION:
+                            PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
+                            break;
+                        case NO_INTERNET:
+                            PopUp.instance.showText(view, getString(R.string.no_internet), PopUp.Length.LENGTH_LONG);
+                    }
+                    return;
+                }
+                try {
+                    IOHandler.getInstance().registerUser(fullName, username, new PasswordHasher().hash(password));
+                    PopUp.instance.showText(view, getString(R.string.registered), PopUp.Length.LENGTH_LONG);
+                    this.getApplicationContext()
+                            .getSharedPreferences("userdata", 0)
+                            .edit()
+                            .putString("username", username)
+                            .putLong("last-authentication", System.currentTimeMillis())
+                            .apply();
+                    // TODO go to main app.
+                } catch (GeneralSecurityException ex) {
+                    Log.error(ex);
+                    PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
+                }
             }
         });
     }

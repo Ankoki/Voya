@@ -22,6 +22,8 @@
     <string name="mismatching_passwords">Your passwords don\'t match.</string>
     <string name="registered">You\'ve been registered</string>
 
+    <string name="exception_popup">Something went wrong. Please try again.</string>
+
     <string name="username_preview">Username</string>
     <string name="password_preview">Password</string>
 

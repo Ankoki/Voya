@@ -6,6 +6,15 @@ package us.byeol.voya.misc;
 public class Log {
 
     /**
+     * Sends an informative message to console.
+     *
+     * @param message the informative message.
+     */
+    public static void info(String message) {
+        System.out.println(message);
+    }
+
+    /**
      * Sends a debug message to console.
      *
      * @param message the debug message.

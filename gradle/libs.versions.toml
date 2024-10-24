@@ -8,7 +8,7 @@ material = "1.12.0"
 activity = "1.9.3"
 constraintlayout = "2.1.4"
 ditto = "4.8.1"
-cronet = "18.1.0"
+argo = "1.2.4"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -19,7 +19,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 ditto = { group = "live.ditto", name = "ditto", version.ref = "ditto" }
-cronet = { group = "com.google.android.gms", name = "play-services-cronet", version.ref = "cronet" }
+argo = { group = "mx.kenzie", name = "argo", version.ref = "argo" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
