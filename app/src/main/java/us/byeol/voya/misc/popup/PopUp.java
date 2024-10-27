@@ -5,7 +5,6 @@ import android.view.View;
 
 public interface PopUp {
 
-    // TODO Find out if 34 supports Toast.
     PopUp instance = Build.VERSION.SDK_INT > 34 ? new SnackBarImpl() : new ToastImpl();
 
     /**

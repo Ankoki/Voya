@@ -15,6 +15,7 @@ import javax.net.ssl.HttpsURLConnection;
 import live.ditto.Ditto;
 import mx.kenzie.argo.Json;
 import us.byeol.voya.misc.Log;
+import us.byeol.voya.users.Book;
 import us.byeol.voya.users.User;
 
 /**
@@ -104,12 +105,24 @@ public class IOHandler {
     }
 
     /**
-     * Loads the userdata of the given username and returns the usable object.
+     * Loads the userdata of the given uuid and returns the usable object.
      *
-     * @param username the username.
+     * @param uuid the uuid.
      * @return the loaded User object.
      */
-    public User loadUser(String username) {
+    public User loadUser(String uuid) {
+        // Make sure to store these and when returning them, update them first on the object.
+        return null;
+    }
+
+    /**
+     * Loads the bookdata of the given uuid and returns the usable object.
+     *
+     * @param uuid the uuid.
+     * @return the loaded Book object.
+     */
+    public Book loadBook(String uuid) {
+        // Make sure to store these and when returning them, update them first on the object.
         return null;
     }
 
