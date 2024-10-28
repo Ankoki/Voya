@@ -2,11 +2,18 @@ package us.byeol.voya.storage;
 
 import android.util.Pair;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -51,6 +58,8 @@ public class IOHandler {
     private URL dropboxDownload = null;
     private final String dropboxAccessToken;
     private final String voyaToken;
+    private final List<User> userCache = new ArrayList<>();
+    private final List<Book> bookCache = new ArrayList<>();
     private final Ditto ditto;
     private final Executor executor = Executors.newSingleThreadExecutor();
 
@@ -95,13 +104,31 @@ public class IOHandler {
     }
 
     /**
-     * @param fullName
-     * @param username
-     * @param hashedPassword
-     * @return
+     * Registers a user to the database and returns the created user.
+     *
+     * @param fullName the full name of the user.
+     * @param username the username.
+     * @param hashedPassword the hashed password.
+     * @return the registered user. May be null.
      */
+    @Nullable
     public User registerUser(String fullName, String username, String hashedPassword) {
-        return null;
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("username", username);
+        map.put("password", hashedPassword);
+        map.put("uuid", UUID.randomUUID().toString());
+        map.put("full-name", fullName);
+        map.put("bio", "hey:) i'm " + fullName.split(" ")[0] + ".");
+        map.put("friend-requests", new String[0]);
+        map.put("book-invites", new String[0]);
+        map.put("standard-books", new String[0]);
+        map.put("admin-books", new String[0]);
+        User user = User.deserialize(map);
+        if (user == null)
+            return null;
+        user.pushChanges();
+        this.userCache.add(user);
+        return user;
     }
 
     /**
@@ -111,8 +138,46 @@ public class IOHandler {
      * @return the loaded User object.
      */
     public User loadUser(String uuid) {
-        // Make sure to store these and when returning them, update them first on the object.
+        for (User user : this.userCache) {
+            if (user.getUuid().equals(uuid)) {
+                user.fetch();
+                return user;
+            }
+        }
+        try {
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/fetch-userdata/", WebRequest.RequestType.GET)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addParameter("uuid", uuid);
+            Optional<String> response = web.execute();
+            if (response.isPresent()) {
+                User user = User.deserialize(Json.fromJson(response.get()));
+                if (user == null)
+                    return null;
+                this.userCache.add(user);
+                return user;
+            }
+        } catch (IOException ex) { Log.error(ex); }
         return null;
+    }
+
+    /**
+     * Pushes a user's data to the database.
+     *
+     * @param user the user to push the data of.
+     * @return true if successful.
+     */
+    public boolean pushUser(User user) {
+        try {
+            WebRequest web = new WebRequest("", WebRequest.RequestType.POST)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addParameter(user.serialize());
+            Optional<String> response = web.execute();
+            // TODO finish this, check how error responses are sent.
+            return true;
+        } catch (IOException ex) { Log.error(ex); }
+        return false;
     }
 
     /**

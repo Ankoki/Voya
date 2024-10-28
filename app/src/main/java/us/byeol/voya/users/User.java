@@ -239,6 +239,13 @@ public class User {
     }
 
     /**
+     * Updates this user with changes that are in the database. Should be called before any change is made to a user.
+     */
+    public void fetch() {
+        // TODO updates from the database.
+    }
+
+    /**
      * Pushes changes made to the database. Should be called every time a change is made with the user.
      */
     public void pushChanges() {
