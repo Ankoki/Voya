@@ -1,16 +1,14 @@
 package us.byeol.voya.users;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import androidx.annotation.NonNull;
 
-import java.security.GeneralSecurityException;
+import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import us.byeol.voya.auth.PasswordHasher;
 import us.byeol.voya.misc.Misc;
 import us.byeol.voya.storage.IOHandler;
 
@@ -22,59 +20,27 @@ public class User {
      * @param map the map containing the userdata.
      * @return the User. May be null if any required fields were not found.
      */
-    @Nullable
+    @NonNull
     public static User deserialize(Map<String, Object> map) {
         User user = new User();
-        String username = Misc.castKey(map, "username", String.class);
-        if (username == null)
-            return null;
-        user.username = username;
-        String uuid = Misc.castKey(map, "uuid", String.class);
-        if (uuid == null)
-            return null;
-        String fullName = Misc.castKey(map, "full-name", String.class);
-        if (fullName == null)
-            return null;
-        user.fullName = fullName;
-        user.uuid = uuid;
-        String bio = Misc.castKey(map, "bio", String.class);
-        if (bio == null)
-            return null;
-        user.setBio(bio);
-        String[] friendRequests = Misc.castKey(map, "friend-requests", String[].class);
-        if (friendRequests == null)
-            return null;
-        user.addFriendRequest(friendRequests);
-        String[] bookInvites = Misc.castKey(map, "book-invites", String[].class);
-        if (bookInvites == null)
-            return null;
-        for (String invite : bookInvites)
-            user.addBookInvite(IOHandler.getInstance().loadBook(invite));
-        String[] standardBooks = Misc.castKey(map, "standard-books", String[].class);
-        if (standardBooks == null)
-            return null;
-        for (String book : standardBooks)
-            user.addStandardBook(IOHandler.getInstance().loadBook(book));
-        String[] adminBooks = Misc.castKey(map, "admin-books", String[].class);
-        if (adminBooks == null)
-            return null;
-        for (String book : adminBooks)
-            user.addAdminBook(IOHandler.getInstance().loadBook(book));
+        user.update(map);
         return user;
     }
 
     private String username,
+            pfpName,
             fullName,
             uuid,
             bio;
-
+    private byte[] profilePicture;
     private final List<User> friends = new ArrayList<>(),
             friendRequests = new ArrayList<>();
     private final List<Book> bookInvites = new ArrayList<>(),
             standardBooks = new ArrayList<>(),
             adminBooks = new ArrayList<>();
 
-    private User() {}
+    private User() {
+    }
 
     /**
      * Gets the username of this user.
@@ -84,6 +50,24 @@ public class User {
     @NotNull
     public String getUsername() {
         return username;
+    }
+
+    /**
+     * Gets the name of the users profile picture.
+     *
+     * @return the name of the profile picture.
+     */
+    public String getProfilePictureName() {
+        return this.pfpName;
+    }
+
+    /**
+     * Gets the profile picture of the users profile picture.
+     *
+     * @return the name of the profile picture.
+     */
+    public byte[] getProfilePicture() {
+        return profilePicture;
     }
 
     /**
@@ -161,7 +145,7 @@ public class User {
      */
     public void addFriendRequest(String... friendRequests) {
         for (String uuid : friendRequests) {
-            User user = IOHandler.getInstance().loadUser(uuid);
+            User user = IOHandler.getInstance().getCachedUser(uuid);
             if (user == null)
                 continue;
             this.friendRequests.add(user);
@@ -225,31 +209,44 @@ public class User {
     }
 
     /**
-     * Checks if the given password is correct for the user.
+     * Updates this users userdata with a map.
+     * Please be careful using this method, it can cause breaking behaviours if keys are forgotten.
      *
-     * @param input the password to check.
-     * @return true if correct.
-     * @throws GeneralSecurityException if the algorithm is not found or the key specification is invalid.
+     * @param map the map.
      */
-    public boolean validatePassword(String input) throws GeneralSecurityException {
-        PasswordHasher hasher = new PasswordHasher();
-
-        hasher.compare(input, null /* TODO get password from database */);
-        return true;
+    public void update(Map<String, Object> map) {
+        this.username = Misc.castKey(map, "username", String.class);
+        this.uuid = Misc.castKey(map, "uuid", String.class);
+        this.pfpName = Misc.castKey(map, "profile-picture", String.class);
+        this.fullName = Misc.castKey(map, "full-name", String.class);
+        this.bio = Misc.castKey(map, "bio", String.class);
+        String[] friendRequests = Misc.castKey(map, "friend-requests", String[].class);
+        this.addFriendRequest(friendRequests);
+        String[] bookInvites = Misc.castKey(map, "book-invites", String[].class);
+        for (String invite : bookInvites)
+            this.addBookInvite(IOHandler.getInstance().loadBook(invite));
+        String[] standardBooks = Misc.castKey(map, "standard-books", String[].class);
+        if (standardBooks == null)
+            for (String book : standardBooks)
+                this.addStandardBook(IOHandler.getInstance().loadBook(book));
+        String[] adminBooks = Misc.castKey(map, "admin-books", String[].class);
+        for (String book : adminBooks)
+            this.addAdminBook(IOHandler.getInstance().loadBook(book));
+        this.profilePicture = IOHandler.getInstance().getImage(IOHandler.PROFILE_IMAGE, this.pfpName);
     }
 
     /**
      * Updates this user with changes that are in the database. Should be called before any change is made to a user.
      */
     public void fetch() {
-        // TODO updates from the database.
+        this.update(IOHandler.getInstance().getUser(uuid));
     }
 
     /**
      * Pushes changes made to the database. Should be called every time a change is made with the user.
      */
     public void pushChanges() {
-        // TODO updates the database.
+        IOHandler.getInstance().pushUser(this);
     }
 
     /**
@@ -274,6 +271,7 @@ public class User {
         map.put("username", this.username);
         // TODO add password field to the map in any method it is used so that it doesn't get stored anywhere.
         map.put("uuid", this.uuid);
+        map.put("profile-picture", this.pfpName);
         map.put("full-name", this.fullName);
         map.put("bio", this.bio);
         String[] friendRequests = new String[this.friendRequests.size()];

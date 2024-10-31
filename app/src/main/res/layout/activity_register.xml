@@ -125,6 +125,18 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <TextView
+            android:id="@+id/login_prompt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/afacad"
+            android:padding="50dp"
+            android:text="@string/login_prompt"
+            android:textAlignment="center"
+            android:textColor="@color/sage_green"
+            android:onClick="onClick"
+            android:textStyle="bold" />
+
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

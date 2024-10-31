@@ -8,20 +8,23 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import live.ditto.Ditto;
 import mx.kenzie.argo.Json;
+import us.byeol.voya.auth.PasswordHasher;
 import us.byeol.voya.misc.Log;
+import us.byeol.voya.misc.Misc;
 import us.byeol.voya.users.Book;
 import us.byeol.voya.users.User;
 
@@ -38,12 +41,11 @@ public class IOHandler {
     /**
      * Initiates the connection to our MongoDB and allows the use of the rest of this class.
      *
-     * @param ditto              the ditto object.
      * @param dropboxAccessToken the access token to use for dropbox.
      * @param voyaToken          the voya token.
      */
-    public static void initiate(Ditto ditto, String dropboxAccessToken, String voyaToken) {
-        instance = new IOHandler(ditto, dropboxAccessToken, voyaToken);
+    public static void initiate(String dropboxAccessToken, String voyaToken) {
+        instance = new IOHandler(dropboxAccessToken, voyaToken);
     }
 
     /**
@@ -60,18 +62,17 @@ public class IOHandler {
     private final String voyaToken;
     private final List<User> userCache = new ArrayList<>();
     private final List<Book> bookCache = new ArrayList<>();
-    private final Ditto ditto;
     private final Executor executor = Executors.newSingleThreadExecutor();
+
+    private final Random random = new Random();
 
     /**
      * Creates a new handler to handle IO operations.
      *
-     * @param ditto              the ditto object.
      * @param dropboxAccessToken the access token to use for dropbox.
      * @param voyaToken          the token to use.
      */
-    public IOHandler(Ditto ditto, String dropboxAccessToken, String voyaToken) {
-        this.ditto = ditto;
+    public IOHandler(String dropboxAccessToken, String voyaToken) {
         this.dropboxAccessToken = dropboxAccessToken;
         this.voyaToken = voyaToken;
         try {
@@ -95,7 +96,7 @@ public class IOHandler {
                     .addParameter("username", username);
             Optional<String> response = web.execute();
             if (response.isPresent())
-                return Pair.create(Response.SUCCESS, (boolean) Json.fromJson(response.get()).get("available"));
+                return Pair.create(Response.SUCCESS, Misc.castKey(Json.fromJson(response.get()), "available", boolean.class));
             else
                 return Pair.create(Response.NO_RESPONSE, false);
         } catch (IOException ex) {
@@ -117,6 +118,7 @@ public class IOHandler {
         map.put("username", username);
         map.put("password", hashedPassword);
         map.put("uuid", UUID.randomUUID().toString());
+        map.put("profile-picture", "default_avatar_" + (random.nextInt(4) + 1));
         map.put("full-name", fullName);
         map.put("bio", "hey:) i'm " + fullName.split(" ")[0] + ".");
         map.put("friend-requests", new String[0]);
@@ -124,20 +126,28 @@ public class IOHandler {
         map.put("standard-books", new String[0]);
         map.put("admin-books", new String[0]);
         User user = User.deserialize(map);
-        if (user == null)
-            return null;
         user.pushChanges();
+        try {
+            WebRequest request = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/update-uuid-username", WebRequest.RequestType.POST)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addParameter(Pair.create(user.getUsername(), user.getUuid()));
+            request.execute();
+        } catch (IOException ex) {
+            Log.error(ex);
+        }
         this.userCache.add(user);
         return user;
     }
 
     /**
      * Loads the userdata of the given uuid and returns the usable object.
+     * If this user has been loaded before, will get it from the cache.
      *
      * @param uuid the uuid.
      * @return the loaded User object.
      */
-    public User loadUser(String uuid) {
+    public User getCachedUser(String uuid) {
         for (User user : this.userCache) {
             if (user.getUuid().equals(uuid)) {
                 user.fetch();
@@ -162,6 +172,78 @@ public class IOHandler {
     }
 
     /**
+     * Loads the userdata of the given uuid and returns the usable object.
+     * Will remove the password field for security purposes.
+     *
+     * @param uuid the uuid.
+     * @return a map of userdata.
+     */
+    public Map<String, Object> getUser(String uuid) {
+        try {
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/fetch-userdata/", WebRequest.RequestType.GET)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addParameter("uuid", uuid);
+            Optional<String> response = web.execute();
+            if (response.isPresent()) {
+                Map<String, Object> json = Json.fromJson(response.get());
+                json.remove("password");
+                return json;
+            }
+        } catch (IOException ex) { Log.error(ex); }
+        return null;
+    }
+
+    /**
+     * Checks if the given password is correct for the given user.
+     *
+     * @param uuid the uuid of the user.
+     * @param input the password to check.
+     * @return true if correct.
+     * @throws GeneralSecurityException if the algorithm is not found or the key specification is invalid.
+     */
+    public boolean validatePassword(String uuid, String input) throws GeneralSecurityException {
+        String password = null;
+        try {
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/fetch-userdata/", WebRequest.RequestType.GET)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addParameter("uuid", uuid);
+            Optional<String> response = web.execute();
+            if (response.isPresent()) {
+                Map<String, Object> json = Json.fromJson(response.get());
+                if (json == null || !json.containsKey("password"))
+                    return false;
+                password = Misc.castKey(json, "password", String.class);
+            }
+        } catch (IOException ex) {
+            Log.error(ex);
+            return false;
+        }
+        if (password == null || password.isEmpty())
+            return false;
+        PasswordHasher hasher = new PasswordHasher();
+        return hasher.compare(input, password);
+    }
+
+    @Nullable
+    public String getUuid(String username) {
+        try {
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/get-uuid-from-username", WebRequest.RequestType.GET)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addParameter(Pair.create("username", username));
+            Optional<String> response = web.execute();
+            // TODO more checks on response
+            if (response.isPresent())
+                return Misc.castKey(Json.fromJson(response.get()), "uuid", String.class);
+        } catch (IOException ex) {
+            Log.error(ex);
+        }
+        return null;
+    }
+
+    /**
      * Pushes a user's data to the database.
      *
      * @param user the user to push the data of.
@@ -169,7 +251,7 @@ public class IOHandler {
      */
     public boolean pushUser(User user) {
         try {
-            WebRequest web = new WebRequest("", WebRequest.RequestType.POST)
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/push-userdata", WebRequest.RequestType.POST)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter(user.serialize());
@@ -227,13 +309,13 @@ public class IOHandler {
     }
 
     /**
-     * Closes the current Ditto client.
+     * // TODO Is this needed? If i'm syncing manually using {@link WebRequest} then I shouldn't need to close anything.
+     * Closes the current client.
      * </br>
-     * Please note that if you use this method, you will need to re-initiate Ditto to use
+     * Please note that if you use this method, you will need to re-initiate this class to use
      * {@link IOHandler#getInstance()} without issues.
      */
     public void close() {
-        this.ditto.close();
         IOHandler.instance = null;
     }
 
