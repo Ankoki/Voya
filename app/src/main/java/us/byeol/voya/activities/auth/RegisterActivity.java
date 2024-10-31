@@ -1,5 +1,6 @@
 package us.byeol.voya.activities.auth;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Pair;
 import android.widget.Button;
@@ -11,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.security.GeneralSecurityException;
 
 import us.byeol.voya.R;
+import us.byeol.voya.activities.main.HomeActivity;
 import us.byeol.voya.auth.PasswordHasher;
 import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
@@ -72,7 +74,7 @@ public class RegisterActivity extends AppCompatActivity {
                             .putString("username", username)
                             .putLong("last-authentication", System.currentTimeMillis())
                             .apply();
-                    // TODO go to main app.
+                    this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class));
                 } catch (GeneralSecurityException ex) {
                     Log.error(ex);
                     PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);

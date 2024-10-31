@@ -13,13 +13,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.security.GeneralSecurityException;
 
 import us.byeol.voya.R;
-import us.byeol.voya.activities.MainActivity;
+import us.byeol.voya.activities.main.HomeActivity;
 import us.byeol.voya.auth.AuthValidator;
 import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
 import us.byeol.voya.misc.popup.PopUp;
 import us.byeol.voya.storage.IOHandler;
-import us.byeol.voya.users.User;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -56,7 +55,7 @@ public class LoginActivity extends AppCompatActivity {
                                     .putLong("last-authentication", System.currentTimeMillis())
                                     .apply();
                             PopUp.instance.showText(view, getString(R.string.logged_in), PopUp.Length.LENGTH_LONG);
-                            this.startActivity(new Intent(this.getBaseContext(), MainActivity.class));
+                            this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class));
                         } else
                             PopUp.instance.showText(view, getString(R.string.incorrect_password), PopUp.Length.LENGTH_LONG);
                     } catch (GeneralSecurityException ex) {
