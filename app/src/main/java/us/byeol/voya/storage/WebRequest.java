@@ -17,7 +17,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+
+import us.byeol.voya.misc.Log;
 
 /**
  * Class to execute web requests. <p>
@@ -163,33 +166,39 @@ public class WebRequest {
      *
      * @return an optional containing the request response, if present.
      */
-    public Optional<String> execute() throws IOException {
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        if (type == RequestType.PATCH) {
-            con.setRequestMethod("POST");
-            con.setRequestProperty("X-HTTP-Method-Override", "PATCH");
-        } else con.setRequestMethod(type.getMethod());
-        for (Pair<String, String> header : headers)
-            con.setRequestProperty(header.first, header.second);
-        if (connectTimeout != -1) con.setConnectTimeout(connectTimeout);
-        if (readTimeout != -1) con.setReadTimeout(readTimeout);
-        con.setInstanceFollowRedirects(allowRedirects);
-        String parameters = this.getEncodedParameters();
-        if (parameters != null) {
-            con.setDoOutput(true);
-            DataOutputStream out = new DataOutputStream(con.getOutputStream());
-            out.write(parameters.getBytes(StandardCharsets.UTF_8));
-            out.flush();
-            out.close();
-        }
-        BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-        String line;
-        StringBuilder content = new StringBuilder();
-        while ((line = in.readLine()) != null) content.append(line);
-        in.close();
-        con.disconnect();
-        String response = content.length() > 0 ? content.toString() : null;
-        return Optional.ofNullable(response);
+    public CompletableFuture<Optional<String>> execute() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                if (type == RequestType.PATCH) {
+                    con.setRequestMethod("POST");
+                    con.setRequestProperty("X-HTTP-Method-Override", "PATCH");
+                } else con.setRequestMethod(type.getMethod());
+                for (Pair<String, String> header : headers)
+                    con.setRequestProperty(header.first, header.second);
+                if (connectTimeout != -1) con.setConnectTimeout(connectTimeout);
+                if (readTimeout != -1) con.setReadTimeout(readTimeout);
+                con.setInstanceFollowRedirects(allowRedirects);
+                String parameters = this.getEncodedParameters();
+                if (parameters != null) {
+                    con.setDoOutput(true);
+                    DataOutputStream out = new DataOutputStream(con.getOutputStream());
+                    out.write(parameters.getBytes(StandardCharsets.UTF_8));
+                    out.flush();
+                    out.close();
+                }
+                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                String line;
+                StringBuilder content = new StringBuilder();
+                while ((line = in.readLine()) != null) content.append(line);
+                in.close();
+                con.disconnect();
+                String response = content.length() > 0 ? content.toString() : null;
+                return Optional.ofNullable(response);
+            } catch (IOException ex) {
+                Log.error(ex);
+            } return Optional.empty();
+        });
     }
 
     /**

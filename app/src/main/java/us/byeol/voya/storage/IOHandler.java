@@ -16,11 +16,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import lombok.SneakyThrows;
 import mx.kenzie.argo.Json;
 import us.byeol.voya.auth.PasswordHasher;
 import us.byeol.voya.misc.Log;
@@ -88,13 +90,14 @@ public class IOHandler {
      * @param username the username to check.
      * @return A pair with the response. If a successful response, the boolean value will be present.
      */
+    @SneakyThrows
     public Pair<Response, Boolean> isAvailable(String username) {
         try {
-            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/is-available/", WebRequest.RequestType.GET)
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/is-available/", WebRequest.RequestType.GET)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter("username", username);
-            Optional<String> response = web.execute();
+            Optional<String> response = web.execute().get();
             if (response.isPresent())
                 return Pair.create(Response.SUCCESS, Misc.castKey(Json.fromJson(response.get()), "available", boolean.class));
             else
@@ -113,7 +116,9 @@ public class IOHandler {
      * @return the registered user. May be null.
      */
     @Nullable
+    @SneakyThrows
     public User registerUser(String fullName, String username, String hashedPassword) {
+        Log.debug("register user");
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("username", username);
         map.put("password", hashedPassword);
@@ -128,7 +133,7 @@ public class IOHandler {
         User user = User.deserialize(map);
         user.pushChanges();
         try {
-            WebRequest request = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/update-uuid-username", WebRequest.RequestType.POST)
+            WebRequest request = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/update-uuid-username", WebRequest.RequestType.POST)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter(Pair.create(user.getUsername(), user.getUuid()));
@@ -137,6 +142,7 @@ public class IOHandler {
             Log.error(ex);
         }
         this.userCache.add(user);
+        Log.debug("user registered");
         return user;
     }
 
@@ -147,6 +153,7 @@ public class IOHandler {
      * @param uuid the uuid.
      * @return the loaded User object.
      */
+    @SneakyThrows
     public User getCachedUser(String uuid) {
         for (User user : this.userCache) {
             if (user.getUuid().equals(uuid)) {
@@ -155,11 +162,11 @@ public class IOHandler {
             }
         }
         try {
-            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/fetch-userdata/", WebRequest.RequestType.GET)
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-userdata/", WebRequest.RequestType.GET)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter("uuid", uuid);
-            Optional<String> response = web.execute();
+            Optional<String> response = web.execute().get();
             if (response.isPresent()) {
                 User user = User.deserialize(Json.fromJson(response.get()));
                 if (user == null)
@@ -178,13 +185,14 @@ public class IOHandler {
      * @param uuid the uuid.
      * @return a map of userdata.
      */
+    @SneakyThrows
     public Map<String, Object> getUser(String uuid) {
         try {
-            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/fetch-userdata/", WebRequest.RequestType.GET)
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-userdata/", WebRequest.RequestType.GET)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter("uuid", uuid);
-            Optional<String> response = web.execute();
+            Optional<String> response = web.execute().get();
             if (response.isPresent()) {
                 Map<String, Object> json = Json.fromJson(response.get());
                 json.remove("password");
@@ -202,14 +210,15 @@ public class IOHandler {
      * @return true if correct.
      * @throws GeneralSecurityException if the algorithm is not found or the key specification is invalid.
      */
+    @SneakyThrows
     public boolean validatePassword(String uuid, String input) throws GeneralSecurityException {
         String password = null;
         try {
-            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/fetch-userdata/", WebRequest.RequestType.GET)
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-userdata/", WebRequest.RequestType.GET)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter("uuid", uuid);
-            Optional<String> response = web.execute();
+            Optional<String> response = web.execute().get();
             if (response.isPresent()) {
                 Map<String, Object> json = Json.fromJson(response.get());
                 if (json == null || !json.containsKey("password"))
@@ -227,13 +236,14 @@ public class IOHandler {
     }
 
     @Nullable
+    @SneakyThrows
     public String getUuid(String username) {
         try {
-            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/get-uuid-from-username", WebRequest.RequestType.GET)
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/get-uuid-from-username", WebRequest.RequestType.GET)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter(Pair.create("username", username));
-            Optional<String> response = web.execute();
+            Optional<String> response = web.execute().get();
             // TODO more checks on response
             if (response.isPresent())
                 return Misc.castKey(Json.fromJson(response.get()), "uuid", String.class);
@@ -249,13 +259,14 @@ public class IOHandler {
      * @param user the user to push the data of.
      * @return true if successful.
      */
+    @SneakyThrows
     public boolean pushUser(User user) {
         try {
-            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herkouapp.com/push-userdata", WebRequest.RequestType.POST)
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/push-userdata", WebRequest.RequestType.POST)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter(user.serialize());
-            Optional<String> response = web.execute();
+            Optional<String> response = web.execute().get();
             // TODO finish this, check how error responses are sent.
             return true;
         } catch (IOException ex) { Log.error(ex); }

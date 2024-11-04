@@ -53,6 +53,7 @@ public class RegisterActivity extends AppCompatActivity {
             else if (!password.equals(confirmPassword))
                 PopUp.instance.showText(view, getString(R.string.mismatching_passwords), PopUp.Length.LENGTH_LONG);
             else {
+                Log.debug("got to the else");
                 Pair<IOHandler.Response, Boolean> availablePair = IOHandler.getInstance().isAvailable(username);
                 if (availablePair.first != IOHandler.Response.SUCCESS) {
                     switch (availablePair.first) {
