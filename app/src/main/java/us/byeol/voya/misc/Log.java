@@ -38,7 +38,11 @@ public class Log {
      * @param ex the exception to get the message from.
      */
     public static void error(Exception ex) {
-        Log.error(ex.getMessage());
+        System.err.println("# " + ex.getClass().getName());
+        System.err.println("# " + ex.getMessage());
+        System.err.println("# ");
+        for (StackTraceElement element : ex.getStackTrace())
+            System.err.println("# " + element.toString());
     }
 
 }

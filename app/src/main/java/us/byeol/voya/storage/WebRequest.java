@@ -5,7 +5,9 @@ import android.util.Pair;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -13,6 +15,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import mx.kenzie.argo.Json;
 import us.byeol.voya.misc.Log;
 
 /**
@@ -181,13 +185,14 @@ public class WebRequest {
                 con.setInstanceFollowRedirects(allowRedirects);
                 String parameters = this.getEncodedParameters();
                 if (parameters != null) {
-                    con.setDoOutput(true);
-                    DataOutputStream out = new DataOutputStream(con.getOutputStream());
-                    out.write(parameters.getBytes(StandardCharsets.UTF_8));
+                    OutputStreamWriter out = new OutputStreamWriter(con.getOutputStream());
+                    out.write(parameters);
                     out.flush();
                     out.close();
+                    con.getOutputStream().close();
                 }
-                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                InputStream stream = con.getResponseCode() / 100 == 2 ? con.getInputStream() : con.getErrorStream();
+                BufferedReader in = new BufferedReader(new InputStreamReader(stream));
                 String line;
                 StringBuilder content = new StringBuilder();
                 while ((line = in.readLine()) != null) content.append(line);
@@ -210,11 +215,19 @@ public class WebRequest {
         if (parameters.isEmpty() && data.isEmpty()) return null;
         boolean hasJson = !data.isEmpty();
         Map<String, Object> empty = new HashMap<>();
-        for (Map<String, Object> json : data) empty.putAll(json);
+        for (Map<String, Object> json : data)
+            empty.putAll(json);
         if (hasJson) {
             for (Pair<String, String> entry : parameters)
                 empty.put(entry.first, entry.second);
-            return empty.toString();
+            List<Pair<String, List<String>>> list = new ArrayList<>();
+            for (Map.Entry<String, Object> entry : empty.entrySet())
+                if (entry.getValue() instanceof String[] array)
+                    if (array.length == 0)
+                        list.add(Pair.create(entry.getKey(), new ArrayList<>()));
+            for (Pair<String, List<String>> pair : list)
+                empty.put(pair.first, pair.second);
+            return Json.toJson(empty);
         } else {
             StringBuilder builder = new StringBuilder();
             for (Pair<String, String> entry : parameters) {
@@ -224,7 +237,7 @@ public class WebRequest {
                 builder.append("&");
             }
             builder.setLength(builder.length() - 1);
-            return builder.toString();
+            return builder.length() == 0 ? null : builder.toString();
         }
     }
 

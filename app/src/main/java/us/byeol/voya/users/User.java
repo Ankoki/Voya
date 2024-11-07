@@ -269,7 +269,6 @@ public class User {
     public Map<String, Object> serialize() {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("username", this.username);
-        // TODO add password field to the map in any method it is used so that it doesn't get stored anywhere.
         map.put("uuid", this.uuid);
         map.put("profile-picture", this.pfpName);
         map.put("full-name", this.fullName);

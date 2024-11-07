@@ -53,11 +53,11 @@ public class RegisterActivity extends AppCompatActivity {
             else if (!password.equals(confirmPassword))
                 PopUp.instance.showText(view, getString(R.string.mismatching_passwords), PopUp.Length.LENGTH_LONG);
             else {
-                Log.debug("got to the else");
                 Pair<IOHandler.Response, Boolean> availablePair = IOHandler.getInstance().isAvailable(username);
                 if (availablePair.first != IOHandler.Response.SUCCESS) {
                     switch (availablePair.first) {
                         case NO_RESPONSE:
+                        case ERROR:
                         case EXCEPTION:
                             PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
                             break;
@@ -67,7 +67,9 @@ public class RegisterActivity extends AppCompatActivity {
                     return;
                 }
                 try {
+                    Log.debug("at register");
                     IOHandler.getInstance().registerUser(fullName, username, new PasswordHasher().hash(password));
+                    Log.debug("after register");
                     PopUp.instance.showText(view, getString(R.string.registered), PopUp.Length.LENGTH_LONG);
                     this.getApplicationContext()
                             .getSharedPreferences("userdata", 0)

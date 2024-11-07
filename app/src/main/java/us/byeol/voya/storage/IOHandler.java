@@ -16,12 +16,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import lombok.Getter;
 import lombok.SneakyThrows;
 import mx.kenzie.argo.Json;
 import us.byeol.voya.auth.PasswordHasher;
@@ -38,6 +40,13 @@ public class IOHandler {
 
     public static String PROFILE_IMAGE = "voya_profile_pictures",
             PAGE_IMAGE = "voya_page_pictures";
+    /**
+     * -- GETTER --
+     *  Returns the instance of the loaded Mongo database.
+     *
+     * @return the instance.
+     */
+    @Getter
     private static IOHandler instance = null;
 
     /**
@@ -48,15 +57,6 @@ public class IOHandler {
      */
     public static void initiate(String dropboxAccessToken, String voyaToken) {
         instance = new IOHandler(dropboxAccessToken, voyaToken);
-    }
-
-    /**
-     * Returns the instance of the loaded Mongo database.
-     *
-     * @return the instance.
-     */
-    public static IOHandler getInstance() {
-        return instance;
     }
 
     private URL dropboxDownload = null;
@@ -94,13 +94,18 @@ public class IOHandler {
     public Pair<Response, Boolean> isAvailable(String username) {
         try {
             WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/is-available/", WebRequest.RequestType.GET)
-                    .addHeader(Pair.create("Content-Type", "application/json"))
-                    .addHeader(Pair.create("authorization", this.voyaToken))
-                    .addParameter("username", username);
-            Optional<String> response = web.execute().get();
-            if (response.isPresent())
-                return Pair.create(Response.SUCCESS, Misc.castKey(Json.fromJson(response.get()), "available", boolean.class));
-            else
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("authorization", this.voyaToken)
+                    .addHeader("username", username);
+            CompletableFuture<Optional<String>> future = web.execute();
+            while (!future.isDone()) {} // Show loading bubble.
+            Optional<String> response = future.get();
+            if (response.isPresent()) {
+                Map<String, Object> map = Json.fromJson(response.get());
+                if (map.containsKey("available") && map.getOrDefault("available", true).equals(true))
+                    return Pair.create(Response.SUCCESS, true);
+                return Pair.create(Response.ERROR, false);
+            } else
                 return Pair.create(Response.NO_RESPONSE, false);
         } catch (IOException ex) {
             return Pair.create(Response.EXCEPTION, false);
@@ -118,7 +123,6 @@ public class IOHandler {
     @Nullable
     @SneakyThrows
     public User registerUser(String fullName, String username, String hashedPassword) {
-        Log.debug("register user");
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("username", username);
         map.put("password", hashedPassword);
@@ -134,15 +138,16 @@ public class IOHandler {
         user.pushChanges();
         try {
             WebRequest request = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/update-uuid-username", WebRequest.RequestType.POST)
-                    .addHeader(Pair.create("Content-Type", "application/json"))
-                    .addHeader(Pair.create("authorization", this.voyaToken))
-                    .addParameter(Pair.create(user.getUsername(), user.getUuid()));
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("authorization", this.voyaToken)
+                    .addHeader("User-Agent","Mozilla/5.0 ( compatible ) ")
+                    .addHeader("Accept", "*/*")
+                    .addParameter(user.getUsername(), user.getUuid());
             request.execute();
         } catch (IOException ex) {
             Log.error(ex);
         }
         this.userCache.add(user);
-        Log.debug("user registered");
         return user;
     }
 
@@ -191,7 +196,7 @@ public class IOHandler {
             WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-userdata/", WebRequest.RequestType.GET)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
-                    .addParameter("uuid", uuid);
+                    .addHeader("uuid", uuid);
             Optional<String> response = web.execute().get();
             if (response.isPresent()) {
                 Map<String, Object> json = Json.fromJson(response.get());
@@ -212,13 +217,17 @@ public class IOHandler {
      */
     @SneakyThrows
     public boolean validatePassword(String uuid, String input) throws GeneralSecurityException {
+        if (uuid == null)
+            return false;
         String password = null;
         try {
             WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-userdata/", WebRequest.RequestType.GET)
-                    .addHeader(Pair.create("Content-Type", "application/json"))
-                    .addHeader(Pair.create("authorization", this.voyaToken))
-                    .addParameter("uuid", uuid);
-            Optional<String> response = web.execute().get();
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("authorization", this.voyaToken)
+                    .addHeader("uuid", uuid);
+            CompletableFuture<Optional<String>> future = web.execute();
+            while (!future.isDone()) {} // Loading bubble or smth.
+            Optional<String> response = future.get();
             if (response.isPresent()) {
                 Map<String, Object> json = Json.fromJson(response.get());
                 if (json == null || !json.containsKey("password"))
@@ -242,11 +251,13 @@ public class IOHandler {
             WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/get-uuid-from-username", WebRequest.RequestType.GET)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
-                    .addParameter(Pair.create("username", username));
-            Optional<String> response = web.execute().get();
-            // TODO more checks on response
-            if (response.isPresent())
+                    .addHeader(Pair.create("username", username));
+            CompletableFuture<Optional<String>> future = web.execute();
+            while (!future.isDone()) {} // Loading bubble.
+            Optional<String> response = future.get();
+            if (response.isPresent()) {
                 return Misc.castKey(Json.fromJson(response.get()), "uuid", String.class);
+            }
         } catch (IOException ex) {
             Log.error(ex);
         }
@@ -266,7 +277,16 @@ public class IOHandler {
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter(user.serialize());
-            Optional<String> response = web.execute().get();
+            for (Map.Entry<String, Object> entry : user.serialize().entrySet())
+                Log.debug(entry.getKey() + "," + entry.getValue());
+            Log.debug(web.getEncodedParameters());
+            CompletableFuture<Optional<String>> future = web.execute();
+            while (!future.isDone()) {} // Loading bubble.
+            Optional<String> response = future.get();
+            if (response.isPresent()) {
+                Log.debug(response.get());
+                return true;
+            }
             // TODO finish this, check how error responses are sent.
             return true;
         } catch (IOException ex) { Log.error(ex); }
@@ -294,29 +314,38 @@ public class IOHandler {
      * @return the data of the image. If any errors are logged, will return nothing.
      */
     public byte[] getImage(String folderName, String imageName) {
+        CompletableFuture<byte[]> future = CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpsURLConnection connection = (HttpsURLConnection) this.dropboxDownload.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Authorization", "Bearer " + this.dropboxAccessToken);
+                connection.setRequestProperty("Dropbox-API-Arg", "{\"path\":\"" + folderName + "\\" + imageName + "\"}");
+                connection.setDoOutput(true);
+                int response = connection.getResponseCode();
+                if (response != HttpsURLConnection.HTTP_OK) {
+                    Log.error("Getting image response failed. [ " + response + " | " + connection.getResponseMessage() + "] ");
+                    return new byte[0];
+                }
+                try (BufferedInputStream inputStream = new BufferedInputStream(connection.getInputStream());
+                     ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+                    while ((bytesRead = inputStream.read(buffer)) != -1)
+                        outputStream.write(buffer, 0, bytesRead);
+                    return outputStream.toByteArray();
+                }
+            } catch (IOException ex) {
+                Log.error(ex);
+            }
+            return new byte[0];
+        });
+        while (!future.isDone()) {} // Show loading bubble [or do in background?
         try {
-            HttpsURLConnection connection = (HttpsURLConnection) this.dropboxDownload.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Authorization", "Bearer " + this.dropboxAccessToken);
-            connection.setRequestProperty("Dropbox-API-Arg", "{\"path\":\"" + folderName + "\\" + imageName + "\"}");
-            connection.setDoOutput(true);
-            int response = connection.getResponseCode();
-            if (response != HttpsURLConnection.HTTP_OK) {
-                Log.error("Getting image response failed. [ " + response + " | " + connection.getResponseMessage() + "] ");
-                return new byte[0];
-            }
-            try (BufferedInputStream inputStream = new BufferedInputStream(connection.getInputStream());
-                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1)
-                    outputStream.write(buffer, 0, bytesRead);
-                return outputStream.toByteArray();
-            }
-        } catch (IOException ex) {
+            return future.get();
+        } catch (InterruptedException | ExecutionException ex) {
             Log.error(ex);
+            return new byte[0];
         }
-        return new byte[0];
     }
 
     /**
@@ -332,6 +361,7 @@ public class IOHandler {
 
     public enum Response {
         SUCCESS,
+        ERROR,
         NO_INTERNET,
         NO_RESPONSE,
         EXCEPTION;
