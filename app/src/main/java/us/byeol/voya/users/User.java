@@ -3,6 +3,8 @@ package us.byeol.voya.users;
 import androidx.annotation.NonNull;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -143,7 +145,9 @@ public class User {
      *
      * @param friendRequests the friend requests to add.
      */
-    public void addFriendRequest(String... friendRequests) {
+    public void addFriendRequest(@Nullable String... friendRequests) {
+        if (friendRequests == null)
+            return;
         for (String uuid : friendRequests) {
             User user = IOHandler.getInstance().getCachedUser(uuid);
             if (user == null)
@@ -170,7 +174,9 @@ public class User {
      *
      * @param bookInvites the books a user has been invited too.
      */
-    public void addBookInvite(Book... bookInvites) {
+    public void addBookInvite(@Nullable Book... bookInvites) {
+        if (bookInvites == null)
+            return;
         this.bookInvites.addAll(Arrays.asList(bookInvites));
     }
 
@@ -223,15 +229,17 @@ public class User {
         String[] friendRequests = Misc.castKey(map, "friend-requests", String[].class);
         this.addFriendRequest(friendRequests);
         String[] bookInvites = Misc.castKey(map, "book-invites", String[].class);
-        for (String invite : bookInvites)
-            this.addBookInvite(IOHandler.getInstance().loadBook(invite));
+        if (bookInvites != null)
+            for (String invite : bookInvites)
+                this.addBookInvite(IOHandler.getInstance().loadBook(invite));
         String[] standardBooks = Misc.castKey(map, "standard-books", String[].class);
-        if (standardBooks == null)
+        if (standardBooks != null)
             for (String book : standardBooks)
                 this.addStandardBook(IOHandler.getInstance().loadBook(book));
         String[] adminBooks = Misc.castKey(map, "admin-books", String[].class);
-        for (String book : adminBooks)
-            this.addAdminBook(IOHandler.getInstance().loadBook(book));
+        if (adminBooks != null)
+            for (String book : adminBooks)
+                this.addAdminBook(IOHandler.getInstance().loadBook(book));
         this.profilePicture = IOHandler.getInstance().getImage(IOHandler.PROFILE_IMAGE, this.pfpName);
     }
 
@@ -246,7 +254,7 @@ public class User {
      * Pushes changes made to the database. Should be called every time a change is made with the user.
      */
     public void pushChanges() {
-        IOHandler.getInstance().pushUser(this);
+        IOHandler.getInstance().pushUser(this.username, this.serialize());
     }
 
     /**
@@ -279,28 +287,28 @@ public class User {
             friendRequests[i] = user.getUuid();
             i++;
         }
-        map.put("friend-requests", friendRequests);
+        map.put("friend-requests", Arrays.asList(friendRequests));
         String[] bookInvites = new String[this.bookInvites.size()];
         i = 0;
         for (Book book : this.bookInvites) {
             bookInvites[i] = book.getUuid();
             i++;
         }
-        map.put("book-invites", bookInvites);
+        map.put("book-invites", Arrays.asList(bookInvites));
         String[] standardBooks = new String[this.standardBooks.size()];
         i = 0;
         for (Book book : this.standardBooks) {
             standardBooks[i] = book.getUuid();
             i++;
         }
-        map.put("standard-books", standardBooks);
+        map.put("standard-books", Arrays.asList(standardBooks));
         String[] adminBooks = new String[this.adminBooks.size()];
         i = 0;
         for (Book book : this.adminBooks) {
             adminBooks[i] = book.getUuid();
             i++;
         }
-        map.put("admin-books", adminBooks);
+        map.put("admin-books", Arrays.asList(adminBooks));
         return map;
     }
 

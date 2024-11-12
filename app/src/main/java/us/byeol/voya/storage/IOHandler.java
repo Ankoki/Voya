@@ -26,6 +26,7 @@ import javax.net.ssl.HttpsURLConnection;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import mx.kenzie.argo.Json;
+import mx.kenzie.argo.meta.JsonException;
 import us.byeol.voya.auth.PasswordHasher;
 import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
@@ -126,27 +127,35 @@ public class IOHandler {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("username", username);
         map.put("password", hashedPassword);
-        map.put("uuid", UUID.randomUUID().toString());
+        String uuid = UUID.randomUUID().toString();
+        map.put("uuid", uuid);
         map.put("profile-picture", "default_avatar_" + (random.nextInt(4) + 1));
         map.put("full-name", fullName);
         map.put("bio", "hey:) i'm " + fullName.split(" ")[0] + ".");
-        map.put("friend-requests", new String[0]);
-        map.put("book-invites", new String[0]);
-        map.put("standard-books", new String[0]);
-        map.put("admin-books", new String[0]);
-        User user = User.deserialize(map);
-        user.pushChanges();
+        map.put("friend-requests", new ArrayList<String>());
+        map.put("book-invites", new ArrayList<String>());
+        map.put("standard-books", new ArrayList<String>());
+        map.put("admin-books", new ArrayList<String>());
+        this.pushUser(username, map);
         try {
-            WebRequest request = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/update-uuid-username", WebRequest.RequestType.POST)
+            WebRequest uuidRequest = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/update-uuid-username", WebRequest.RequestType.POST)
                     .addHeader("Content-Type", "application/json")
                     .addHeader("authorization", this.voyaToken)
                     .addHeader("User-Agent","Mozilla/5.0 ( compatible ) ")
                     .addHeader("Accept", "*/*")
-                    .addParameter(user.getUsername(), user.getUuid());
-            request.execute();
+                    .addParameter(Map.of(username, uuid));
+            CompletableFuture<Optional<String>> future = uuidRequest.execute();
+            while (!future.isDone()) {}
+            Optional<String> optional = future.get();
+            if (optional.isPresent())
+                Log.debug(optional.get());
+            else
+                Log.debug("Optional is not present.");
         } catch (IOException ex) {
             Log.error(ex);
+            return null;
         }
+        User user = User.deserialize(map);
         this.userCache.add(user);
         return user;
     }
@@ -267,19 +276,19 @@ public class IOHandler {
     /**
      * Pushes a user's data to the database.
      *
-     * @param user the user to push the data of.
+     * @param username the username.
+     * @param userdata the result of {@link User#serialize()}, or a copy.
      * @return true if successful.
      */
     @SneakyThrows
-    public boolean pushUser(User user) {
+    public boolean pushUser(String username, Map<String, Object> userdata) {
         try {
+            Map<String, Object> parent = new LinkedHashMap<>();
+            parent.put(username, userdata);
             WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/push-userdata", WebRequest.RequestType.POST)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
-                    .addParameter(user.serialize());
-            for (Map.Entry<String, Object> entry : user.serialize().entrySet())
-                Log.debug(entry.getKey() + "," + entry.getValue());
-            Log.debug(web.getEncodedParameters());
+                    .addParameter(parent);
             CompletableFuture<Optional<String>> future = web.execute();
             while (!future.isDone()) {} // Loading bubble.
             Optional<String> response = future.get();

@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.security.GeneralSecurityException;
+import java.util.concurrent.CompletableFuture;
 
 import us.byeol.voya.R;
 import us.byeol.voya.activities.main.HomeActivity;
@@ -47,6 +48,7 @@ public class LoginActivity extends AppCompatActivity {
                     String uuid = IOHandler.getInstance().getUuid(usernameInput.getText().toString());
                     try {
                         boolean authenticated = IOHandler.getInstance().validatePassword(uuid, passwordInput.getText().toString());
+                        Log.debug("Authenticated returned " + authenticated + " for " + passwordInput.getText() + ".");
                         if (authenticated) {
                             this.getApplicationContext()
                                     .getSharedPreferences("userdata", 0)
