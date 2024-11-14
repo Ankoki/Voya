@@ -11,7 +11,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.security.GeneralSecurityException;
-import java.util.concurrent.CompletableFuture;
 
 import us.byeol.voya.R;
 import us.byeol.voya.activities.main.HomeActivity;

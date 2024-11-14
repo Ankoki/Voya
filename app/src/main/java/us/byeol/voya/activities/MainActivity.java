@@ -9,12 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import us.byeol.voya.R;
 import us.byeol.voya.activities.auth.LoginActivity;
@@ -22,7 +17,6 @@ import us.byeol.voya.activities.main.HomeActivity;
 import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
 import us.byeol.voya.storage.IOHandler;
-import us.byeol.voya.storage.WebRequest;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,10 +37,10 @@ public class MainActivity extends AppCompatActivity {
             user = "";
             preferences.edit().putString("username", "").apply();
         }
-        // if (user.isEmpty())
+        if (user.isEmpty())
             this.startActivity(new Intent(this.getBaseContext(), LoginActivity.class));
-        // else
-           // this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class));
+        else
+           this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class));
     }
 
 }

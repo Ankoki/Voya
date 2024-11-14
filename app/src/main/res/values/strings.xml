@@ -29,4 +29,7 @@
 
     <string name="register_prompt">Not registered yet? Sign up now</string>
     <string name="login_prompt">Already have an account? Log in now</string>
+
+    <string name="books_tab_name">Books</string>
+    <string name="invites_tab_name">Invites</string>
 </resources>
