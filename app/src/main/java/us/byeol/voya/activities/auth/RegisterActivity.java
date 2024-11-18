@@ -18,7 +18,8 @@ import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
 import us.byeol.voya.misc.popup.PopUp;
 import us.byeol.voya.auth.AuthValidator;
-import us.byeol.voya.storage.IOHandler;
+import us.byeol.voya.web.IOHandler;
+import us.byeol.voya.api.User;
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -67,14 +68,16 @@ public class RegisterActivity extends AppCompatActivity {
                     return;
                 }
                 try {
-                    Log.debug("at register");
-                    IOHandler.getInstance().registerUser(fullName, username, new PasswordHasher().hash(password));
-                    Log.debug("after register");
+                    User user = IOHandler.getInstance().registerUser(fullName, username, new PasswordHasher().hash(password));
+                    if (user == null || !user.isValid()) {
+                        PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
+                        return;
+                    }
                     PopUp.instance.showText(view, getString(R.string.registered), PopUp.Length.LENGTH_LONG);
                     this.getApplicationContext()
                             .getSharedPreferences("userdata", 0)
                             .edit()
-                            .putString("username", username)
+                            .putString("current-uuid", user.getUuid())
                             .putLong("last-authentication", System.currentTimeMillis())
                             .apply();
                     this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class));

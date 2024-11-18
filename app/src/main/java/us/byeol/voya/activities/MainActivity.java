@@ -16,7 +16,8 @@ import us.byeol.voya.activities.auth.LoginActivity;
 import us.byeol.voya.activities.main.HomeActivity;
 import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
-import us.byeol.voya.storage.IOHandler;
+import us.byeol.voya.web.IOHandler;
+import us.byeol.voya.api.User;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -31,16 +32,22 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException ex) { Log.error(ex); }
         IOHandler.initiate(properties.getProperty("dropbox_access_token"), properties.getProperty("voya_token"));
         SharedPreferences preferences = this.getApplicationContext().getSharedPreferences("userdata", 0);
-        String user = preferences.getString("username", "");
+        String uuid = preferences.getString("current-uuid", "");
         long lastAuth = preferences.getLong("last-authentication", System.currentTimeMillis());
         if ((System.currentTimeMillis() - lastAuth) >= 6.048e+8) {
-            user = "";
-            preferences.edit().putString("username", "").apply();
+            uuid = "";
+            preferences.edit().putString("current-uuid", "").apply();
         }
-        if (user.isEmpty())
+        if (uuid.isEmpty())
             this.startActivity(new Intent(this.getBaseContext(), LoginActivity.class));
-        else
-           this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class));
+        else {
+            User initialFetch = IOHandler.getInstance().fetchUser(uuid);
+            if (initialFetch.isValid())
+                this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class));
+            else {
+                this.startActivity(new Intent(this.getBaseContext(), LoginActivity.class));
+            }
+        }
     }
 
 }

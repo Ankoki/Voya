@@ -32,4 +32,6 @@
 
     <string name="books_tab_name">Books</string>
     <string name="invites_tab_name">Invites</string>
+
+    <string name="no_books">You have no books. Why not create one?</string>
 </resources>

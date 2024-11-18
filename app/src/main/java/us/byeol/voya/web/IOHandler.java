@@ -1,4 +1,4 @@
-package us.byeol.voya.storage;
+package us.byeol.voya.web;
 
 import android.util.Pair;
 
@@ -18,20 +18,16 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import lombok.Getter;
 import lombok.SneakyThrows;
 import mx.kenzie.argo.Json;
-import mx.kenzie.argo.meta.JsonException;
 import us.byeol.voya.auth.PasswordHasher;
 import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
-import us.byeol.voya.users.Book;
-import us.byeol.voya.users.User;
+import us.byeol.voya.api.Book;
+import us.byeol.voya.api.User;
 
 /**
  * This is mainly for MongoDB, however we also need to access a dropbox
@@ -39,17 +35,22 @@ import us.byeol.voya.users.User;
  */
 public class IOHandler {
 
-    public static String PROFILE_IMAGE = "voya_profile_pictures",
-            PAGE_IMAGE = "voya_page_pictures";
+    //<editor-fold desc="Instance Handling">
+
+    private static IOHandler instance = null;
+
     /**
-     * -- GETTER --
-     *  Returns the instance of the loaded Mongo database.
+     * Returns the instance of the class that has been initiated last. 
+     * <br>
+     * If you have called the {@link IOHandler#initiate(String, String)} method, 
+     * you can assert this is not null.
      *
      * @return the instance.
      */
-    @Getter
-    private static IOHandler instance = null;
-
+    public static IOHandler getInstance() {
+        return IOHandler.instance;
+    }
+    
     /**
      * Initiates the connection to our MongoDB and allows the use of the rest of this class.
      *
@@ -59,15 +60,6 @@ public class IOHandler {
     public static void initiate(String dropboxAccessToken, String voyaToken) {
         instance = new IOHandler(dropboxAccessToken, voyaToken);
     }
-
-    private URL dropboxDownload = null;
-    private final String dropboxAccessToken;
-    private final String voyaToken;
-    private final List<User> userCache = new ArrayList<>();
-    private final List<Book> bookCache = new ArrayList<>();
-    private final Executor executor = Executors.newSingleThreadExecutor();
-
-    private final Random random = new Random();
 
     /**
      * Creates a new handler to handle IO operations.
@@ -80,10 +72,28 @@ public class IOHandler {
         this.voyaToken = voyaToken;
         try {
             this.dropboxDownload = new URL("https://content.dropboxapi.com/2/files/download");
-        } catch (IOException ex) {
-            Log.error(ex);
-        }
+        } catch (IOException ex) { Log.error(ex); }
     }
+
+    //</editor-fold>
+
+    //<editor-fold desc="Fields">
+
+    public static String PROFILE_IMAGE = "voya_profile_pictures",
+            BOOK_IMAGE = "voya_book_pictures",
+            PAGE_IMAGE = "voya_page_pictures";
+
+    private URL dropboxDownload = null;
+    private final String dropboxAccessToken;
+    private final String voyaToken;
+    private final List<User> userCache = new ArrayList<>();
+    private final List<Book> bookCache = new ArrayList<>();
+
+    private final Random random = new Random();
+
+    //</editor-fold>
+
+    //<editor-fold desc="Registration">
 
     /**
      * Checks if a username is available to register.
@@ -99,11 +109,11 @@ public class IOHandler {
                     .addHeader("authorization", this.voyaToken)
                     .addHeader("username", username);
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {} // Show loading bubble.
+            while (!future.isDone()) {} // TODO Loading bubble
             Optional<String> response = future.get();
             if (response.isPresent()) {
                 Map<String, Object> map = Json.fromJson(response.get());
-                if (map.containsKey("available") && map.getOrDefault("available", true).equals(true))
+                if (map.containsKey("available") && Misc.castKey(map, "available", boolean.class).equals(true))
                     return Pair.create(Response.SUCCESS, true);
                 return Pair.create(Response.ERROR, false);
             } else
@@ -111,6 +121,43 @@ public class IOHandler {
         } catch (IOException ex) {
             return Pair.create(Response.EXCEPTION, false);
         }
+    }
+
+    /**
+     * Checks if the given password is correct for the given user.
+     *
+     * @param uuid the uuid of the user.
+     * @param input the password to check.
+     * @return true if correct.
+     * @throws GeneralSecurityException if the algorithm is not found or the key specification is invalid.
+     */
+    @SneakyThrows
+    public boolean validatePassword(String uuid, String input) throws GeneralSecurityException {
+        if (uuid == null)
+            return false;
+        String password = null;
+        try {
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-userdata/", WebRequest.RequestType.GET)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("authorization", this.voyaToken)
+                    .addHeader("uuid", uuid);
+            CompletableFuture<Optional<String>> future = web.execute();
+            while (!future.isDone()) {} // TODO Loading bubble
+            Optional<String> response = future.get();
+            if (response.isPresent()) {
+                Map<String, Object> json = Json.fromJson(response.get());
+                if (json == null || !json.containsKey("password"))
+                    return false;
+                password = Misc.castKey(json, "password", String.class);
+            }
+        } catch (IOException ex) {
+            Log.error(ex);
+            return false;
+        }
+        if (password == null || password.isEmpty())
+            return false;
+        PasswordHasher hasher = new PasswordHasher();
+        return hasher.compare(input, password);
     }
 
     /**
@@ -136,7 +183,7 @@ public class IOHandler {
         map.put("book-invites", new ArrayList<String>());
         map.put("standard-books", new ArrayList<String>());
         map.put("admin-books", new ArrayList<String>());
-        this.pushUser(username, map);
+        this.pushUserdata(username, map);
         try {
             WebRequest uuidRequest = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/update-uuid-username", WebRequest.RequestType.POST)
                     .addHeader("Content-Type", "application/json")
@@ -145,12 +192,7 @@ public class IOHandler {
                     .addHeader("Accept", "*/*")
                     .addParameter(Map.of(username, uuid));
             CompletableFuture<Optional<String>> future = uuidRequest.execute();
-            while (!future.isDone()) {}
-            Optional<String> optional = future.get();
-            if (optional.isPresent())
-                Log.debug(optional.get());
-            else
-                Log.debug("Optional is not present.");
+            while (!future.isDone()) {} // TODO Loading bubble
         } catch (IOException ex) {
             Log.error(ex);
             return null;
@@ -160,6 +202,10 @@ public class IOHandler {
         return user;
     }
 
+    //</editor-fold>
+
+    //<editor-fold desc="Userdata">
+
     /**
      * Loads the userdata of the given uuid and returns the usable object.
      * If this user has been loaded before, will get it from the cache.
@@ -168,22 +214,20 @@ public class IOHandler {
      * @return the loaded User object.
      */
     @SneakyThrows
-    public User getCachedUser(String uuid) {
+    public User fetchUser(String uuid) {
         for (User user : this.userCache) {
-            if (user.getUuid().equals(uuid)) {
-                user.fetch();
+            if (user.getUuid().equals(uuid))
                 return user;
-            }
         }
         try {
             WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-userdata/", WebRequest.RequestType.GET)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
-                    .addParameter("uuid", uuid);
+                    .addHeader("uuid", uuid);
             Optional<String> response = web.execute().get();
             if (response.isPresent()) {
                 User user = User.deserialize(Json.fromJson(response.get()));
-                if (user == null)
+                if (!user.isValid())
                     return null;
                 this.userCache.add(user);
                 return user;
@@ -200,7 +244,7 @@ public class IOHandler {
      * @return a map of userdata.
      */
     @SneakyThrows
-    public Map<String, Object> getUser(String uuid) {
+    public Map<String, Object> fetchUserdata(String uuid) {
         try {
             WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-userdata/", WebRequest.RequestType.GET)
                     .addHeader(Pair.create("Content-Type", "application/json"))
@@ -217,63 +261,6 @@ public class IOHandler {
     }
 
     /**
-     * Checks if the given password is correct for the given user.
-     *
-     * @param uuid the uuid of the user.
-     * @param input the password to check.
-     * @return true if correct.
-     * @throws GeneralSecurityException if the algorithm is not found or the key specification is invalid.
-     */
-    @SneakyThrows
-    public boolean validatePassword(String uuid, String input) throws GeneralSecurityException {
-        if (uuid == null)
-            return false;
-        String password = null;
-        try {
-            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-userdata/", WebRequest.RequestType.GET)
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("authorization", this.voyaToken)
-                    .addHeader("uuid", uuid);
-            CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {} // Loading bubble or smth.
-            Optional<String> response = future.get();
-            if (response.isPresent()) {
-                Map<String, Object> json = Json.fromJson(response.get());
-                if (json == null || !json.containsKey("password"))
-                    return false;
-                password = Misc.castKey(json, "password", String.class);
-            }
-        } catch (IOException ex) {
-            Log.error(ex);
-            return false;
-        }
-        if (password == null || password.isEmpty())
-            return false;
-        PasswordHasher hasher = new PasswordHasher();
-        return hasher.compare(input, password);
-    }
-
-    @Nullable
-    @SneakyThrows
-    public String getUuid(String username) {
-        try {
-            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/get-uuid-from-username", WebRequest.RequestType.GET)
-                    .addHeader(Pair.create("Content-Type", "application/json"))
-                    .addHeader(Pair.create("authorization", this.voyaToken))
-                    .addHeader(Pair.create("username", username));
-            CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {} // Loading bubble.
-            Optional<String> response = future.get();
-            if (response.isPresent()) {
-                return Misc.castKey(Json.fromJson(response.get()), "uuid", String.class);
-            }
-        } catch (IOException ex) {
-            Log.error(ex);
-        }
-        return null;
-    }
-
-    /**
      * Pushes a user's data to the database.
      *
      * @param username the username.
@@ -281,7 +268,7 @@ public class IOHandler {
      * @return true if successful.
      */
     @SneakyThrows
-    public boolean pushUser(String username, Map<String, Object> userdata) {
+    public boolean pushUserdata(String username, Map<String, Object> userdata) {
         try {
             Map<String, Object> parent = new LinkedHashMap<>();
             parent.put(username, userdata);
@@ -290,7 +277,7 @@ public class IOHandler {
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter(parent);
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {} // Loading bubble.
+            while (!future.isDone()) {} // TODO Loading bubble
             Optional<String> response = future.get();
             if (response.isPresent()) {
                 Log.debug(response.get());
@@ -302,14 +289,111 @@ public class IOHandler {
         return false;
     }
 
+    //</editor-fold>
+
+    //<editor-fold desc="Bookdata">
+
     /**
      * Loads the bookdata of the given uuid and returns the usable object.
      *
      * @param uuid the uuid.
      * @return the loaded Book object.
      */
-    public Book loadBook(String uuid) {
-        // Make sure to store these and when returning them, update them first on the object.
+    @SneakyThrows
+    public Book fetchBook(String uuid) {
+        for (Book book : this.bookCache) {
+            if (book.getUuid().equals(uuid)) {
+                return book;
+            }
+        }
+        try {
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-bookdata/", WebRequest.RequestType.GET)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addHeader("uuid", uuid);
+            Optional<String> response = web.execute().get();
+            if (response.isPresent()) {
+                Book book = Book.deserialize(Json.fromJson(response.get()));
+                if (!book.isValid())
+                    return null;
+                this.bookCache.add(book);
+                return book;
+            }
+        } catch (IOException ex) { Log.error(ex); }
+        return null;
+    }
+
+    /**
+     * Loads the userdata of the given uuid and returns the usable object.
+     * Will remove the password field for security purposes.
+     *
+     * @param uuid the uuid.
+     * @return a map of userdata.
+     */
+    @SneakyThrows
+    public Map<String, Object> fetchBookdata(String uuid) {
+        try {
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-bookdata/", WebRequest.RequestType.GET)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addHeader("uuid", uuid);
+            Optional<String> response = web.execute().get();
+            if (response.isPresent())
+                return Json.fromJson(response.get());
+        } catch (IOException ex) { Log.error(ex); }
+        return null;
+    }
+
+    /**
+     * Pushes a book's data to the database.
+     *
+     * @param uuid the books uuid.
+     * @param bookdata the result of {@link Book#serialize()}, or a copy.
+     * @return true if successful.
+     */
+    @SneakyThrows
+    public boolean pushBookdata(String uuid, Map<String, Object> bookdata) {
+        try {
+            Map<String, Object> parent = new LinkedHashMap<>();
+            parent.put(uuid, bookdata);
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/push-bookdata", WebRequest.RequestType.POST)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addParameter(parent);
+            CompletableFuture<Optional<String>> future = web.execute();
+            while (!future.isDone()) {} // TODO Loading bubble
+            Optional<String> response = future.get();
+            if (response.isPresent()) {
+                Log.debug(response.get());
+                return true;
+            }
+            // TODO finish this, check how error responses are sent.
+            return true;
+        } catch (IOException ex) { Log.error(ex); }
+        return false;
+    }
+
+    //</editor-fold>
+
+    //<editor-fold desc="Miscellaneous">
+
+    @Nullable
+    @SneakyThrows
+    public String fetchUuid(String username) {
+        try {
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/get-uuid-from-username", WebRequest.RequestType.GET)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addHeader(Pair.create("username", username));
+            CompletableFuture<Optional<String>> future = web.execute();
+            while (!future.isDone()) {} // TODO Loading bubble
+            Optional<String> response = future.get();
+            if (response.isPresent()) {
+                return Misc.castKey(Json.fromJson(response.get()), "uuid", String.class);
+            }
+        } catch (IOException ex) {
+            Log.error(ex);
+        }
         return null;
     }
 
@@ -323,6 +407,7 @@ public class IOHandler {
      * @return the data of the image. If any errors are logged, will return nothing.
      */
     public byte[] getImage(String folderName, String imageName) {
+        // TODO FIX
         CompletableFuture<byte[]> future = CompletableFuture.supplyAsync(() -> {
             try {
                 HttpsURLConnection connection = (HttpsURLConnection) this.dropboxDownload.openConnection();
@@ -348,7 +433,7 @@ public class IOHandler {
             }
             return new byte[0];
         });
-        while (!future.isDone()) {} // Show loading bubble [or do in background?
+        while (!future.isDone()) {} // TODO Loading bubble
         try {
             return future.get();
         } catch (InterruptedException | ExecutionException ex) {
@@ -358,22 +443,33 @@ public class IOHandler {
     }
 
     /**
-     * // TODO Is this needed? If i'm syncing manually using {@link WebRequest} then I shouldn't need to close anything.
-     * Closes the current client.
-     * </br>
-     * Please note that if you use this method, you will need to re-initiate this class to use
-     * {@link IOHandler#getInstance()} without issues.
+     * Used to tell the user the problem without hindering obtaining the result.
      */
-    public void close() {
-        IOHandler.instance = null;
+    public enum Response {
+
+        /**
+         * Successful response.
+         */
+        SUCCESS,
+        /**
+         * An unexpected error arisen.
+         */
+        ERROR,
+        /**
+         * There was no internet.
+         */
+        NO_INTERNET,
+        /**
+         * The server didn't respond.
+         */
+        NO_RESPONSE,
+        /**
+         * An exception occurred.
+         */
+        EXCEPTION;
+
     }
 
-    public enum Response {
-        SUCCESS,
-        ERROR,
-        NO_INTERNET,
-        NO_RESPONSE,
-        EXCEPTION;
-    }
+    //</editor-fold>
 
 }

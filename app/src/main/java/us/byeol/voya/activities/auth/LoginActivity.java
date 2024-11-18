@@ -18,7 +18,8 @@ import us.byeol.voya.auth.AuthValidator;
 import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
 import us.byeol.voya.misc.popup.PopUp;
-import us.byeol.voya.storage.IOHandler;
+import us.byeol.voya.web.IOHandler;
+import us.byeol.voya.api.User;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -44,15 +45,19 @@ public class LoginActivity extends AppCompatActivity {
                 else if (!AuthValidator.isValidPassword(passwordInput.getText().toString()))
                     PopUp.instance.showText(view, getString(R.string.invalid_password), PopUp.Length.LENGTH_LONG);
                 else {
-                    String uuid = IOHandler.getInstance().getUuid(usernameInput.getText().toString());
+                    String uuid = IOHandler.getInstance().fetchUuid(usernameInput.getText().toString());
                     try {
                         boolean authenticated = IOHandler.getInstance().validatePassword(uuid, passwordInput.getText().toString());
-                        Log.debug("Authenticated returned " + authenticated + " for " + passwordInput.getText() + ".");
                         if (authenticated) {
+                            User user = IOHandler.getInstance().fetchUser(uuid);
+                            if (user == null || !user.isValid()) {
+                                PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
+                                return;
+                            }
                             this.getApplicationContext()
                                     .getSharedPreferences("userdata", 0)
                                     .edit()
-                                    .putString("username", usernameInput.getText().toString())
+                                    .putString("current-uuid", uuid)
                                     .putLong("last-authentication", System.currentTimeMillis())
                                     .apply();
                             PopUp.instance.showText(view, getString(R.string.logged_in), PopUp.Length.LENGTH_LONG);
