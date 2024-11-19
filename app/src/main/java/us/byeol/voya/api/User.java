@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
 import us.byeol.voya.web.IOHandler;
 
@@ -151,11 +150,11 @@ public class User extends MongoMappable {
     /**
      * Gets all the friends this user has.
      *
-     * @return the friends.
+     * @return the uuid of the friends.
      */
-    public User[] getFriends() {
+    public String[] getFriends() {
         this.fetchUpdates();
-        return this.friends.toArray(new User[0]);
+        return this.friends.toArray(new String[0]);
     }
 
     /**
@@ -163,9 +162,9 @@ public class User extends MongoMappable {
      *
      * @param user the friend.
      */
-    public void addFriend(User user) {
+    public void addFriend(String user) {
         this.fetchUpdates();
-        this.friends.add(user.getUuid());
+        this.friends.add(user);
         this.pushChanges();
     }
 
@@ -245,6 +244,7 @@ public class User extends MongoMappable {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected boolean mapResponse(Map<String, Object> map) {
         if (map == null ||
                 !map.containsKey("username") ||
@@ -263,18 +263,14 @@ public class User extends MongoMappable {
         this.fullName = Misc.castKey(map, "full-name", String.class);
         this.bio = Misc.castKey(map, "bio", String.class);
         if (map.containsKey("friends")) {
-            String[] friends = Misc.castKey(map, "friends", String[].class);
-            if (friends != null) {
-                for (String friend : friends) {
-                    User user = IOHandler.getInstance().fetchUser(friend);
-                    if (user.isValid())
-                        this.addFriend(user);
-                }
-            }
+            List<String> friends = Misc.castKey(map, "friends", List.class);
+            if (friends != null)
+                this.friends.addAll(friends);
         }
         if (map.containsKey("friend-requests")) {
             List<String> friendRequests = Misc.castKey(map, "friend-requests", List.class);
-            this.friendRequests.addAll(friendRequests);
+            if (friendRequests != null)
+                this.friendRequests.addAll(friendRequests);
         }
         if (map.containsKey("books")) {
             List<String> books = Misc.castKey(map, "books", List.class);
@@ -287,7 +283,7 @@ public class User extends MongoMappable {
             }
         }
         if (map.containsKey("book-invites")) {
-            String[] bookInvites = Misc.castKey(map, "book-invites", String[].class);
+            List<String> bookInvites = Misc.castKey(map, "book-invites", List.class);
             if (bookInvites != null) {
                 for (String invite : bookInvites) {
                     Book book = IOHandler.getInstance().fetchBook(invite);
@@ -316,7 +312,6 @@ public class User extends MongoMappable {
             bookInvites[i] = book.getUuid();
             i++;
         }
-        map.put("book-invites", Arrays.asList(bookInvites));
         String[] books = new String[this.books.size()];
         i = 0;
         for (Book book : this.books) {
@@ -324,6 +319,7 @@ public class User extends MongoMappable {
             i++;
         }
         map.put("books", Arrays.asList(books));
+        map.put("book-invites", Arrays.asList(bookInvites));
         return map;
     }
 

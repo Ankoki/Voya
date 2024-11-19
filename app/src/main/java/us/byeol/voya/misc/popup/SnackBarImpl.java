@@ -10,7 +10,7 @@ public class SnackBarImpl implements PopUp {
     @SuppressLint("WrongConstant")
     @Override
     public void showText(View view, String message, PopUp.Length duration) {
-        view.setElevation(10f);
+        // TODO add the ability to specify options, such as background colour and actions.
         Snackbar.make(view, message, duration.getCode()).show();
     }
 

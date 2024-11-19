@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/home_screen"
+    android:background="@drawable/voya_home_bg"
     android:orientation="vertical"
     app:layout_constraintBottom_toBottomOf="parent"
     app:layout_constraintEnd_toEndOf="parent"
@@ -13,18 +13,42 @@
     app:layout_constraintTop_toTopOf="parent"
     tools:context=".activities.MainActivity">
 
+    <TextView
+        android:id="@+id/user_greeting"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:fontFamily="serif-monospace"
+        android:text="@string/user_greeting"
+        android:textAlignment="center"
+        android:textColor="@color/cream"
+        android:textSize="25sp" />
+
+    <TextView
+        android:id="@+id/app_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:letterSpacing="1"
+        android:text="@string/app_name"
+        android:textAlignment="center"
+        android:textAllCaps="true"
+        android:textColor="@color/orange"
+        android:textSize="50sp"
+        android:textStyle="bold" />
+
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/home_tab"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="80dp"
         android:background="#00FFFFFF"
         android:backgroundTint="@color/black"
-        app:tabIndicatorColor="@color/sage_green"
+        app:tabIndicatorColor="@color/dark_green"
         app:tabIndicatorFullWidth="false"
         app:tabIndicatorGravity="bottom"
         app:tabIndicatorHeight="7.5dp"
-        app:tabSelectedTextColor="@color/sage_green_darker">
+        app:tabRippleColor="@color/orange"
+        app:tabSelectedTextColor="@color/dark_green"
+        app:tabTextColor="@color/light_green">
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
@@ -59,50 +83,52 @@
 
     </ScrollView>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/floatingActionButton"
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/coordinator"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="20dp"
-        android:layout_marginBottom="15dp"
-        android:background="@null"
-        android:clickable="true"
-        android:tint="@color/white"
-        app:backgroundTint="@color/sage_green_darker"
-        app:srcCompat="@android:drawable/ic_input_add" />
+        android:layout_height="wrap_content">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/sage_green"
-        android:orientation="horizontal">
-
-        <ImageButton
-            android:id="@+id/home_button"
-            android:layout_width="wrap_content"
+        <com.google.android.material.bottomappbar.BottomAppBar
+            android:id="@+id/floating_navigation_bar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@null"
-            android:padding="10dp"
-            app:srcCompat="@drawable/home_icon" />
+            android:layout_gravity="bottom"
+            android:layout_marginLeft="80dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginRight="80dp"
+            android:layout_marginBottom="40dp"
+            android:background="@drawable/voya_nav_bar"
+            app:elevation="8dp"
+            app:fabAlignmentMode="center">
 
-        <ImageButton
-            android:id="@+id/friend_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@null"
-            android:padding="10dp"
-            app:srcCompat="@drawable/friend_icon" />
+            <ImageButton
+                android:id="@+id/home_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/home_button_desc"
+                android:background="@drawable/home_rp"
+                android:layout_marginStart="20dp"/>
 
-        <ImageButton
-            android:id="@+id/settings_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@null"
-            android:padding="10dp"
-            app:srcCompat="@drawable/user_icon" />
-    </LinearLayout>
+            <ImageButton
+                android:id="@+id/new_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/new_button_desc"
+                android:background="@drawable/new_rp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="32dp"/>
+
+            <ImageButton
+                android:id="@+id/profile_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/profile_button_desc"
+                android:background="@drawable/profile_rp"
+                android:layout_gravity="end"
+                android:layout_marginEnd="20dp"/>
+
+
+        </com.google.android.material.bottomappbar.BottomAppBar>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
 </LinearLayout>

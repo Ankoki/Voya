@@ -2,13 +2,13 @@ package us.byeol.voya.activities.auth;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 import java.security.GeneralSecurityException;
 
@@ -34,16 +34,17 @@ public class LoginActivity extends AppCompatActivity {
             EditText usernameInput = this.findViewById(R.id.username_field);
             EditText passwordInput = this.findViewById(R.id.password_field);
             Button loginButton = this.findViewById(R.id.login_button);
+            CoordinatorLayout coordinator = this.findViewById(R.id.coordinator);
             loginButton.setOnClickListener(view -> {
                 if (!AuthValidator.hasInternet(this))
-                    PopUp.instance.showText(view, getString(R.string.no_internet), PopUp.Length.LENGTH_LONG);
+                    PopUp.instance.showText(coordinator, getString(R.string.no_internet), PopUp.Length.LENGTH_LONG);
                 else if (usernameInput.getText().toString().isEmpty() || usernameInput.getText().toString().isBlank() ||
                     passwordInput.getText().toString().isEmpty() || passwordInput.getText().toString().isBlank())
-                    PopUp.instance.showText(view, getString(R.string.empty_fields), PopUp.Length.LENGTH_LONG);
+                    PopUp.instance.showText(coordinator, getString(R.string.empty_fields), PopUp.Length.LENGTH_LONG);
                 else if (!AuthValidator.isValidUsername(usernameInput.getText().toString()))
-                    PopUp.instance.showText(view, getString(R.string.invalid_username), PopUp.Length.LENGTH_LONG);
+                    PopUp.instance.showText(coordinator, getString(R.string.invalid_username), PopUp.Length.LENGTH_LONG);
                 else if (!AuthValidator.isValidPassword(passwordInput.getText().toString()))
-                    PopUp.instance.showText(view, getString(R.string.invalid_password), PopUp.Length.LENGTH_LONG);
+                    PopUp.instance.showText(coordinator, getString(R.string.invalid_password), PopUp.Length.LENGTH_LONG);
                 else {
                     String uuid = IOHandler.getInstance().fetchUuid(usernameInput.getText().toString());
                     try {
@@ -51,7 +52,7 @@ public class LoginActivity extends AppCompatActivity {
                         if (authenticated) {
                             User user = IOHandler.getInstance().fetchUser(uuid);
                             if (user == null || !user.isValid()) {
-                                PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
+                                PopUp.instance.showText(coordinator, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
                                 return;
                             }
                             this.getApplicationContext()
@@ -60,13 +61,13 @@ public class LoginActivity extends AppCompatActivity {
                                     .putString("current-uuid", uuid)
                                     .putLong("last-authentication", System.currentTimeMillis())
                                     .apply();
-                            PopUp.instance.showText(view, getString(R.string.logged_in), PopUp.Length.LENGTH_LONG);
+                            PopUp.instance.showText(coordinator, getString(R.string.logged_in), PopUp.Length.LENGTH_LONG);
                             this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class));
                         } else
-                            PopUp.instance.showText(view, getString(R.string.incorrect_password), PopUp.Length.LENGTH_LONG);
+                            PopUp.instance.showText(coordinator, getString(R.string.incorrect_password), PopUp.Length.LENGTH_LONG);
                     } catch (GeneralSecurityException ex) {
                         Log.error(ex);
-                        PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
+                        PopUp.instance.showText(coordinator, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
                     }
                 }
             });
@@ -74,11 +75,8 @@ public class LoginActivity extends AppCompatActivity {
 
         register_button : {
             TextView text = this.findViewById(R.id.register_prompt);
-            text.setOnClickListener(view -> this.startActivity(new Intent(this.getBaseContext(), RegisterActivity.class)));
+            text.setOnClickListener(coordinator -> this.startActivity(new Intent(this.getBaseContext(), RegisterActivity.class)));
         }
-    }
-
-    public void onClick(View view) {
 
     }
 

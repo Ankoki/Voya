@@ -6,12 +6,10 @@ import android.graphics.BitmapFactory;
 import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import mx.kenzie.argo.Json;
 import us.byeol.voya.misc.Log;
@@ -141,6 +139,16 @@ public class Book extends MongoMappable {
     }
 
     /**
+     * Whether or not the given user is an author of this book.
+     *
+     * @param user the user.
+     * @return true if is an author.
+     */
+    public boolean isAuthor(User user) {
+        return this.authors.contains(user.getUuid()) || this.primaryAuthor.equals(user.getUuid());
+    }
+
+    /**
      * Appends a new page to this book.
      *
      * @param page the new page.
@@ -174,20 +182,21 @@ public class Book extends MongoMappable {
             return false;
         this.authors.clear();
         this.readers.clear();
+        this.pages.clear();
         this.uuid = Misc.castKey(map, "uuid", String.class);
         this.title = Misc.castKey(map, "title", String.class);
         this.blurb = Misc.castKey(map, "blurb", String.class);
         this.photoPath = Misc.castKey(map, "book-photo", String.class);
         this.primaryAuthor = Misc.castKey(map, "primary-author", String.class);
         if (map.containsKey("authors")) {
-            String[] authors = Misc.castKey(map, "authors", String[].class);
+            List<String> authors = Misc.castKey(map, "authors", List.class);
             if (authors != null)
-                this.authors.addAll(Arrays.asList(authors));
+                this.authors.addAll(authors);
         }
         if (map.containsKey("readers")) {
-            String[] readers = Misc.castKey(map, "readers", String[].class);
+            List<String> readers = Misc.castKey(map, "readers", List.class);
             if (readers != null)
-                this.readers.addAll(Arrays.asList(readers));
+                this.readers.addAll(readers);
         }
         if (map.containsKey("pages")) {
             Object rawPages = map.get("pages");

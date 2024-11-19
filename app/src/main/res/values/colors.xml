@@ -5,4 +5,10 @@
     <color name="sage_green">#CBC7AF</color>
     <color name="sage_green_darker">#BCB697</color>
     <color name="transparent">#33FFFFFF</color>
+
+    <color name="light_green">#606C38</color>
+    <color name="dark_green">#283618</color>
+    <color name="cream">#FEFAE0</color>
+    <color name="orange">#DDA158</color>
+    <color name="sandstone">#BC6026</color>
 </resources>

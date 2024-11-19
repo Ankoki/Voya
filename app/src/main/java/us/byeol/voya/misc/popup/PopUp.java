@@ -8,6 +8,15 @@ public interface PopUp {
     PopUp instance = Build.VERSION.SDK_INT > 34 ? new SnackBarImpl() : new ToastImpl();
 
     /**
+     * Checks if the instance of PopUp is Toast or Snackbar.
+     *
+     * @return true if snackbar.
+     */
+    default boolean isSnackbarImpl() {
+        return instance instanceof SnackBarImpl;
+    }
+
+    /**
      * Shows the given message on the given view.
      *
      * @param view the view to show it on.

@@ -5,9 +5,11 @@ import android.os.Bundle;
 import android.util.Pair;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 import java.security.GeneralSecurityException;
 
@@ -33,26 +35,27 @@ public class RegisterActivity extends AppCompatActivity {
         EditText passwordInput = this.findViewById(R.id.password_field);
         EditText confirmPasswordInput = this.findViewById(R.id.confirm_password_field);
         Button registerButton = this.findViewById(R.id.register_button);
+        CoordinatorLayout coordinator = this.findViewById(R.id.coordinator);
         registerButton.setOnClickListener(view -> {
             String fullName = fullNameInput.getText().toString();
             String username = usernameInput.getText().toString();
             String password = passwordInput.getText().toString();
             String confirmPassword = confirmPasswordInput.getText().toString();
             if (!AuthValidator.hasInternet(this))
-                PopUp.instance.showText(view, getString(R.string.no_internet), PopUp.Length.LENGTH_LONG);
+                PopUp.instance.showText(coordinator, getString(R.string.no_internet), PopUp.Length.LENGTH_LONG);
             else if (fullName.isEmpty() || fullName.isBlank() ||
                     username.isEmpty() || username.isBlank() ||
                     password.isEmpty() || password.isBlank() ||
                     confirmPassword.isEmpty() || confirmPassword.isBlank())
-                PopUp.instance.showText(view, getString(R.string.empty_fields), PopUp.Length.LENGTH_LONG);
+                PopUp.instance.showText(coordinator, getString(R.string.empty_fields), PopUp.Length.LENGTH_LONG);
             else if (!fullName.contains(" "))
-                PopUp.instance.showText(view, getString(R.string.invalid_fullname), PopUp.Length.LENGTH_LONG);
+                PopUp.instance.showText(coordinator, getString(R.string.invalid_fullname), PopUp.Length.LENGTH_LONG);
             else if (!AuthValidator.isValidUsername(username))
-                PopUp.instance.showText(view, getString(R.string.invalid_username), PopUp.Length.LENGTH_LONG);
+                PopUp.instance.showText(coordinator, getString(R.string.invalid_username), PopUp.Length.LENGTH_LONG);
             else if (!AuthValidator.isValidPassword(password))
-                PopUp.instance.showText(view, getString(R.string.invalid_password), PopUp.Length.LENGTH_LONG);
+                PopUp.instance.showText(coordinator, getString(R.string.invalid_password), PopUp.Length.LENGTH_LONG);
             else if (!password.equals(confirmPassword))
-                PopUp.instance.showText(view, getString(R.string.mismatching_passwords), PopUp.Length.LENGTH_LONG);
+                PopUp.instance.showText(coordinator, getString(R.string.mismatching_passwords), PopUp.Length.LENGTH_LONG);
             else {
                 Pair<IOHandler.Response, Boolean> availablePair = IOHandler.getInstance().isAvailable(username);
                 if (availablePair.first != IOHandler.Response.SUCCESS) {
@@ -60,20 +63,20 @@ public class RegisterActivity extends AppCompatActivity {
                         case NO_RESPONSE:
                         case ERROR:
                         case EXCEPTION:
-                            PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
+                            PopUp.instance.showText(coordinator, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
                             break;
                         case NO_INTERNET:
-                            PopUp.instance.showText(view, getString(R.string.no_internet), PopUp.Length.LENGTH_LONG);
+                            PopUp.instance.showText(coordinator, getString(R.string.no_internet), PopUp.Length.LENGTH_LONG);
                     }
                     return;
                 }
                 try {
                     User user = IOHandler.getInstance().registerUser(fullName, username, new PasswordHasher().hash(password));
                     if (user == null || !user.isValid()) {
-                        PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
+                        PopUp.instance.showText(coordinator, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
                         return;
                     }
-                    PopUp.instance.showText(view, getString(R.string.registered), PopUp.Length.LENGTH_LONG);
+                    PopUp.instance.showText(coordinator, getString(R.string.registered), PopUp.Length.LENGTH_LONG);
                     this.getApplicationContext()
                             .getSharedPreferences("userdata", 0)
                             .edit()
@@ -83,10 +86,12 @@ public class RegisterActivity extends AppCompatActivity {
                     this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class));
                 } catch (GeneralSecurityException ex) {
                     Log.error(ex);
-                    PopUp.instance.showText(view, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
+                    PopUp.instance.showText(coordinator, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
                 }
             }
         });
+        TextView login = this.findViewById(R.id.login_prompt);
+        login.setOnClickListener(event -> this.startActivity(new Intent(this.getBaseContext(), LoginActivity.class)));
     }
 
 }

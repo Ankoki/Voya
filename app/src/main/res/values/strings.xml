@@ -33,5 +33,10 @@
     <string name="books_tab_name">Books</string>
     <string name="invites_tab_name">Invites</string>
 
+    <string name="user_greeting">Hello, %username%!</string>
+
     <string name="no_books">You have no books. Why not create one?</string>
+    <string name="home_button_desc">An outline of a house.</string>
+    <string name="new_button_desc">A plus.</string>
+    <string name="profile_button_desc">An outline of a person\'s upper torso.</string>
 </resources>

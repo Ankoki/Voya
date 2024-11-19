@@ -4,6 +4,9 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.os.Build;
+
 import java.util.regex.Pattern;
 
 public class AuthValidator {
@@ -19,8 +22,10 @@ public class AuthValidator {
      */
     public static boolean hasInternet(Context context) {
         ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        return manager.getActiveNetworkInfo() != null; // Maybe && manager.getActiveNetworkInfo().isAvailable();
+        NetworkInfo activeNetworkInfo = manager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
+
 
     /**
      * Checks if the given username is valid.
