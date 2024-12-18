@@ -158,6 +158,15 @@ public class User extends MongoMappable {
     }
 
     /**
+     * Gets all the incoming friend requests this user has.
+     * @return the uuid of the friend requests.
+     */
+    public String[] getFriendRequests() {
+        this.fetchUpdates();
+        return this.friendRequests.toArray(new String[0]);
+    }
+
+    /**
      * Adds a friend to this user.
      *
      * @param user the friend.
@@ -203,6 +212,16 @@ public class User extends MongoMappable {
     public Book[] getBooks() {
         this.fetchUpdates();
         return this.books.toArray(new Book[0]);
+    }
+
+    /**
+     * Gets all the incoming book invites for this user.
+     *
+     * @return the book invites.
+     */
+    public Book[] getBookInvites() {
+        this.fetchUpdates();
+        return this.bookInvites.toArray(new Book[0]);
     }
 
     /**

@@ -1,6 +1,7 @@
 package us.byeol.voya.activities.main;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -86,8 +87,7 @@ public class HomeActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onTabUnselected(Tab tab) {
-                }
+                public void onTabUnselected(Tab tab) {}
 
                 @Override
                 public void onTabReselected(Tab tab) {
@@ -127,7 +127,8 @@ public class HomeActivity extends AppCompatActivity {
         User primary = IOHandler.getInstance().fetchUser(book.getPrimaryAuthor());
         author.setText(primary.getUsername());
         card.setOnClickListener(event -> {
-
+            PageActivity.setIncomingPage(this.getApplicationContext(), book.getUuid(), 0);
+            this.startActivity(new Intent(this.getBaseContext(), PageActivity.class));
         });
         return card;
     }

@@ -149,6 +149,16 @@ public class Book extends MongoMappable {
     }
 
     /**
+     * Gets the pages of this book. May be empty.
+     *
+     * @return the pages of the book.
+     */
+    public Map<Integer, Page> getPages() {
+        this.fetchUpdates();
+        return this.pages;
+    }
+
+    /**
      * Appends a new page to this book.
      *
      * @param page the new page.

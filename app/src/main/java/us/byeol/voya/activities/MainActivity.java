@@ -17,7 +17,6 @@ import us.byeol.voya.activities.main.HomeActivity;
 import us.byeol.voya.auth.AuthValidator;
 import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
-import us.byeol.voya.misc.popup.PopUp;
 import us.byeol.voya.web.IOHandler;
 import us.byeol.voya.api.User;
 

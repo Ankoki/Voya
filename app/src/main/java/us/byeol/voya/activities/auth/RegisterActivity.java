@@ -85,6 +85,7 @@ public class RegisterActivity extends AppCompatActivity {
                             .apply();
                     this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class));
                 } catch (GeneralSecurityException ex) {
+
                     Log.error(ex);
                     PopUp.instance.showText(coordinator, getString(R.string.exception_popup), PopUp.Length.LENGTH_LONG);
                 }
