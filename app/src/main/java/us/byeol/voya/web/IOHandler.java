@@ -109,7 +109,7 @@ public class IOHandler {
                     .addHeader("authorization", this.voyaToken)
                     .addHeader("username", username);
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {} // TODO Loading bubble
+            while (!future.isDone()) {}
             Optional<String> response = future.get();
             if (response.isPresent()) {
                 Map<String, Object> map = Json.fromJson(response.get());
@@ -142,7 +142,7 @@ public class IOHandler {
                     .addHeader("authorization", this.voyaToken)
                     .addHeader("uuid", uuid);
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {} // TODO Loading bubble
+            while (!future.isDone()) {}
             Optional<String> response = future.get();
             if (response.isPresent()) {
                 Map<String, Object> json = Json.fromJson(response.get());
@@ -192,7 +192,7 @@ public class IOHandler {
                     .addHeader("Accept", "*/*")
                     .addParameter(Map.of(username, uuid));
             CompletableFuture<Optional<String>> future = uuidRequest.execute();
-            while (!future.isDone()) {} // TODO Loading bubble
+            while (!future.isDone()) {}
         } catch (IOException ex) {
             Log.error(ex);
             return null;
@@ -277,13 +277,12 @@ public class IOHandler {
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter(parent);
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {} // TODO Loading bubble
+            while (!future.isDone()) {}
             Optional<String> response = future.get();
             if (response.isPresent()) {
                 Log.debug(response.get());
                 return true;
             }
-            // TODO finish this, check how error responses are sent.
             return true;
         } catch (IOException ex) { Log.error(ex); }
         return false;
@@ -361,13 +360,12 @@ public class IOHandler {
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter(parent);
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {} // TODO Loading bubble
+            while (!future.isDone()) {}
             Optional<String> response = future.get();
             if (response.isPresent()) {
                 Log.debug(response.get());
                 return true;
             }
-            // TODO finish this, check how error responses are sent.
             return true;
         } catch (IOException ex) { Log.error(ex); }
         return false;
@@ -386,7 +384,7 @@ public class IOHandler {
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addHeader(Pair.create("username", username));
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {} // TODO Loading bubble
+            while (!future.isDone()) {}
             Optional<String> response = future.get();
             if (response.isPresent()) {
                 return Misc.castKey(Json.fromJson(response.get()), "uuid", String.class);
@@ -433,7 +431,7 @@ public class IOHandler {
             }
             return new byte[0];
         });
-        while (!future.isDone()) {} // TODO Loading bubble
+        while (!future.isDone()) {}
         try {
             return future.get();
         } catch (InterruptedException | ExecutionException ex) {

@@ -113,9 +113,10 @@
             <TextView
                 android:id="@+id/page_count"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_weight="1"
+                android:padding="10dp"
                 android:text="@android:string/untitled"
                 android:textAlignment="center" />
 
@@ -123,9 +124,11 @@
                 android:id="@+id/edit_button"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
+                android:layout_gravity="center_horizontal"
                 android:layout_weight="1"
                 android:background="@color/cream"
-                android:scaleType="fitStart"
+                android:scaleType="centerInside"
+                android:textAlignment="center"
                 app:srcCompat="@drawable/quill" />
 
             <ImageButton
@@ -134,7 +137,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:background="@color/cream"
-                android:scaleType="fitStart"
+                android:scaleType="fitEnd"
                 app:srcCompat="@drawable/page_next" />
 
         </LinearLayout>
