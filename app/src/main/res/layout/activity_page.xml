@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/cream"
+    android:backgroundTint="@color/cream"
     android:orientation="vertical"
     tools:layout_editor_absoluteX="1dp"
     tools:layout_editor_absoluteY="1dp">
@@ -97,35 +98,52 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="bottom"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:weightSum="4">
 
             <ImageButton
-                android:id="@+id/imageButton3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:id="@+id/previous_page"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                app:srcCompat="@android:drawable/alert_dark_frame" />
+                android:background="@color/cream"
+                android:scaleType="fitStart"
+                app:srcCompat="@drawable/page_back" />
 
             <TextView
-                android:id="@+id/textView4"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:id="@+id/page_count"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
                 android:layout_weight="1"
-                android:text="TextView" />
+                android:text="@android:string/untitled"
+                android:textAlignment="center" />
 
             <ImageButton
-                android:id="@+id/imageButton4"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:id="@+id/edit_button"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                app:srcCompat="@android:drawable/alert_light_frame" />
+                android:background="@color/cream"
+                android:scaleType="fitStart"
+                app:srcCompat="@drawable/quill" />
+
+            <ImageButton
+                android:id="@+id/next_page"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@color/cream"
+                android:scaleType="fitStart"
+                app:srcCompat="@drawable/page_next" />
+
         </LinearLayout>
     </LinearLayout>
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:id="@+id/coordinator"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" >
+        android:layout_height="match_parent">
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
