@@ -6,11 +6,14 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
@@ -20,9 +23,15 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener;
 import com.google.android.material.tabs.TabLayout.Tab;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import us.byeol.voya.R;
+import us.byeol.voya.api.Page;
 import us.byeol.voya.auth.AuthValidator;
 import us.byeol.voya.misc.Misc;
+import us.byeol.voya.misc.VoyaFactory;
 import us.byeol.voya.misc.popup.PopUp;
 import us.byeol.voya.web.IOHandler;
 import us.byeol.voya.api.Book;
@@ -39,11 +48,10 @@ public class HomeActivity extends AppCompatActivity {
         this.setContentView(R.layout.activity_home);
         this.coordinator = this.findViewById(R.id.coordinator);
         SharedPreferences preferences = HomeActivity.this.getApplicationContext().getSharedPreferences("userdata", 0);
-        if (AuthValidator.hasInternet(this)) {
-            User user = IOHandler.getInstance().fetchUser(preferences.getString("current-uuid", ""));
-            TextView text = this.findViewById(R.id.user_greeting);
-            text.setText(this.getString(R.string.user_greeting).replace("%username%", user.getFirstName()));
-        }
+        User user = IOHandler.getInstance().fetchUser(preferences.getString("current-uuid", ""));
+        TextView text = this.findViewById(R.id.user_greeting);
+        if (!AuthValidator.hasInternet(this))
+            text.setText(this.getString(R.string.user_greeting).replace("%username%", "user!"));
         PopUp.instance.showText(this.coordinator, this.getString(R.string.logged_in), PopUp.Length.LENGTH_LONG);
 
         tab_layout: {
@@ -56,7 +64,6 @@ public class HomeActivity extends AppCompatActivity {
                         PopUp.instance.showText(coordinator, HomeActivity.this.getString(R.string.no_internet), PopUp.Length.LENGTH_LONG);
                         return;
                     }
-                    User user = IOHandler.getInstance().fetchUser(preferences.getString("current-uuid", ""));
                     String text = String.valueOf(tab.getText());
                     if (text.isEmpty() || text.equals("null"))
                         return;
@@ -102,6 +109,30 @@ public class HomeActivity extends AppCompatActivity {
         {
             BottomAppBar appBar = findViewById(R.id.floating_navigation_bar);
             appBar.setBackground(this.getDrawable(R.drawable.voya_nav_bar));
+            ImageButton newPage = appBar.findViewById(R.id.new_button);
+            newPage.setOnClickListener(event -> {
+                LayoutInflater inflater = this.getLayoutInflater();
+                LinearLayout layout = (LinearLayout) inflater.inflate(R.layout.book_dialogue, null);
+                EditText titleBox = layout.findViewById(R.id.book_title);
+                EditText pageTitleBox = layout.findViewById(R.id.page_title);
+                EditText contentBox = layout.findViewById(R.id.page_content);
+                titleBox.setHint("Book Title");
+                pageTitleBox.setHint("Page Title");
+                contentBox.setHint("Page Content");
+                new AlertDialog.Builder(this)
+                        .setTitle("New Page")
+                        .setView(layout)
+                        .setPositiveButton("Create", (dialog, id) -> {
+                            String title = String.valueOf(titleBox.getText());
+                            String pageTitle = String.valueOf(pageTitleBox.getText());
+                            String content = String.valueOf(contentBox.getText());
+                            Book book = VoyaFactory.createBook(String.valueOf(UUID.randomUUID()), title, "This is my book.", "null", user.getUuid());
+                            book.appendPage(VoyaFactory.createPage("null", pageTitle, content, user));
+                            user.addBook(book);
+                        })
+                        .setNegativeButton("Cancel", (dialog, id) -> dialog.cancel())
+                        .show();
+            });
         }
 
     }

@@ -141,6 +141,7 @@
                 app:srcCompat="@drawable/page_next" />
 
         </LinearLayout>
+
     </LinearLayout>
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout

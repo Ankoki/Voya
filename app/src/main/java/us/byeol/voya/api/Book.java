@@ -175,6 +175,22 @@ public class Book extends MongoMappable {
     }
 
     /**
+     * Requests to transfer the author status to a uuid.
+     *
+     * @param uuid the uuid to change.
+     * @return true if the given uuid was able to be transferred as an author.
+     */
+    public boolean requestAuthorStatus(String uuid) {
+        if (this.authors.contains(uuid) || !this.readers.contains(uuid))
+            return false;
+        this.fetchUpdates();
+        this.readers.remove(uuid);
+        this.authors.add(uuid);
+        this.pushChanges();
+        return true;
+    }
+
+    /**
      * Updates this users userdata with a map.
      * Please be careful using this method, it can cause breaking behaviours if keys are forgotten.
      *

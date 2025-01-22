@@ -5,15 +5,20 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import us.byeol.voya.R;
@@ -21,6 +26,7 @@ import us.byeol.voya.api.Book;
 import us.byeol.voya.api.Page;
 import us.byeol.voya.api.User;
 import us.byeol.voya.misc.Misc;
+import us.byeol.voya.misc.VoyaFactory;
 import us.byeol.voya.misc.popup.PopUp;
 import us.byeol.voya.web.IOHandler;
 
@@ -30,7 +36,7 @@ public class PageActivity extends AppCompatActivity {
      * Sets the preferences to expect an incoming page.
      *
      * @param context the context to set the preferences for.
-     * @param uuid the UUID of the incoming book.
+     * @param uuid    the UUID of the incoming book.
      */
     public static void setIncomingPage(Context context, String uuid, int page) {
         SharedPreferences preferences = context.getSharedPreferences("bookdata", 0);
@@ -70,11 +76,12 @@ public class PageActivity extends AppCompatActivity {
      * to create a new activity every time a page is turned.
      * Editing the contents is more performance friendly.
      *
-     * @param book the book the page belongs too.
+     * @param book  the book the page belongs too.
      * @param index the index of the page.
      */
     public void displayPage(Book book, int index) {
         this.setContentView(R.layout.activity_page);
+        this.coordinator = this.findViewById(R.id.coordinator);
         ImageButton backButton = this.findViewById(R.id.back_button);
         backButton.setOnClickListener(event -> this.startActivity(new Intent(this.getBaseContext(), HomeActivity.class)));
         TextView bookTitle = this.findViewById(R.id.book_title);
@@ -114,7 +121,113 @@ public class PageActivity extends AppCompatActivity {
                     PopUp.instance.showText(this.coordinator, "You are not an author, and cannot edit this book.", PopUp.Length.LENGTH_SHORT);
                     return;
                 }
-                // TODO editing box somehow.
+                new AlertDialog.Builder(this)
+                        .setTitle("Edit")
+                        .setItems(new String[]{"Book Title", "Page Title", /*"Page Photo",*/ "Page Content", "Invite User", "Make User Author", "New Page"}, (dialog, which) -> {
+                            LayoutInflater inflater = this.getLayoutInflater();
+                            LinearLayout layout = (LinearLayout) inflater.inflate(R.layout.edit_dialog, null);
+                            EditText editBox = layout.findViewById(R.id.edit_box);
+                            switch (which) {
+                                case 0:
+                                    editBox.setText(book.getTitle());
+                                    new AlertDialog.Builder(this)
+                                            .setTitle("Edit Book Title")
+                                            .setView(layout)
+                                            .setPositiveButton("Done", (innerDialogue, id) -> {
+                                                String edited = String.valueOf(editBox.getText());
+                                                book.setTitle(edited);
+                                            })
+                                            .setNegativeButton("Cancel", (innerDialogue, id) -> innerDialogue.cancel())
+                                            .show();
+                                    break;
+                                case 1:
+                                    editBox.setText(page.getTitle());
+                                    new AlertDialog.Builder(this)
+                                            .setTitle("Edit Page Title")
+                                            .setView(layout)
+                                            .setPositiveButton("Done", (innerDialogue, id) -> {
+                                                String edited = String.valueOf(editBox.getText());
+                                                page.setTitle(edited);
+                                                book.fetchUpdates();
+                                                book.pushChanges(); // Pages aren't attached to books and must be fetched and pushed as a part of them.
+                                            })
+                                            .setNegativeButton("Cancel", (innerDialogue, id) -> innerDialogue.cancel())
+                                            .show();
+                                    break;
+                                case 2:
+                                    editBox.setText(page.getContent());
+                                    new AlertDialog.Builder(this)
+                                            .setTitle("Edit Page Content")
+                                            .setView(layout)
+                                            .setPositiveButton("Done", (innerDialogue, id) -> {
+                                                String edited = String.valueOf(editBox.getText());
+                                                page.setContent(edited);
+                                                book.fetchUpdates();
+                                                book.pushChanges(); // Pages aren't attached to books and must be fetched and pushed as a part of them.
+                                            })
+                                            .setNegativeButton("Cancel", (innerDialogue, id) -> innerDialogue.cancel())
+                                            .show();
+                                    break;
+                                case 3:
+                                    editBox.setHint("Username");
+                                    new AlertDialog.Builder(this)
+                                            .setTitle("Invite User")
+                                            .setView(layout)
+                                            .setPositiveButton("Invite", (innerDialogue, id) -> {
+                                                String username = String.valueOf(editBox.getText());
+                                                String uuid = IOHandler.getInstance().fetchUuid(username);
+                                                User loaded = IOHandler.getInstance().fetchUser(uuid);
+                                                if (loaded == null || !loaded.isValid()) {
+                                                    PopUp.instance.showText(this.coordinator, "Something went wrong [PA179]", PopUp.Length.LENGTH_LONG);
+                                                    return;
+                                                }
+                                                loaded.addBookInvite(book);
+                                                PopUp.instance.showText(this.coordinator, username + " has been invited.", PopUp.Length.LENGTH_SHORT);
+                                            })
+                                            .setNegativeButton("Cancel", (innerDialogue, id) -> innerDialogue.cancel())
+                                            .show();
+                                    break;
+                                case 4:
+                                    editBox.setHint("Username");
+                                    new AlertDialog.Builder(this)
+                                            .setTitle("Make User Author")
+                                            .setView(layout)
+                                            .setPositiveButton("Done", (innerDialogue, id) -> {
+                                                String username = String.valueOf(editBox.getText());
+                                                String uuid = IOHandler.getInstance().fetchUuid(username);
+                                                if (uuid == null || uuid.isEmpty()) {
+                                                    PopUp.instance.showText(this.coordinator, "Something went wrong [PA197]", PopUp.Length.LENGTH_LONG);
+                                                    return;
+                                                }
+                                                if (book.requestAuthorStatus(uuid))
+                                                    PopUp.instance.showText(this.coordinator, username + " is now an author.", PopUp.Length.LENGTH_SHORT);
+                                                else
+                                                    PopUp.instance.showText(this.coordinator, "The request for " + username + " was denied.", PopUp.Length.LENGTH_SHORT);
+                                            })
+                                            .setNegativeButton("Cancel", (innerDialogue, id) -> innerDialogue.cancel())
+                                            .show();
+                                case 5:
+                                    LinearLayout pageLayout = (LinearLayout) inflater.inflate(R.layout.page_dialogue, null);
+                                    EditText titleBox = pageLayout.findViewById(R.id.page_title);
+                                    EditText contentBox = pageLayout.findViewById(R.id.page_content);
+                                    titleBox.setHint("Title");
+                                    contentBox.setHint("Content");
+                                    new AlertDialog.Builder(this)
+                                            .setTitle("New Page")
+                                            .setView(layout)
+                                            .setPositiveButton("Create", (innerDialogue, id) -> {
+                                                String newTitle = String.valueOf(titleBox.getText());
+                                                String newContent = String.valueOf(contentBox.getText());
+                                                book.appendPage(VoyaFactory.createPage("null", newTitle, newContent, user));
+                                            })
+                                            .setNegativeButton("Cancel", (innerDialogue, id) -> innerDialogue.cancel())
+                                            .show();
+                                default:
+                                    PopUp.instance.showText(this.coordinator, "Something went wrong [PA189]", PopUp.Length.LENGTH_LONG);
+                            }
+                        })
+                        .show();
+                this.displayPage(book, index);
             });
             ImageButton nextPage = this.findViewById(R.id.next_page);
             nextPage.setOnClickListener(event -> {

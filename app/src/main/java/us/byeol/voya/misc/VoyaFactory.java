@@ -38,7 +38,9 @@ public class VoyaFactory {
         String[] authors = new String[1];
         authors[0] = author;
         map.put("authors", Arrays.asList(authors));
-        return Book.deserialize(map);
+        Book book = Book.deserialize(map);
+        book.pushChanges();
+        return book;
     }
 
     /**
