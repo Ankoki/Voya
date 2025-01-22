@@ -52,6 +52,8 @@ public class HomeActivity extends AppCompatActivity {
         TextView text = this.findViewById(R.id.user_greeting);
         if (!AuthValidator.hasInternet(this))
             text.setText(this.getString(R.string.user_greeting).replace("%username%", "user!"));
+        else
+            text.setText(this.getString(R.string.user_greeting).replace("%username%", user.getFirstName()));
         PopUp.instance.showText(this.coordinator, this.getString(R.string.logged_in), PopUp.Length.LENGTH_LONG);
 
         tab_layout: {
