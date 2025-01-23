@@ -149,6 +149,15 @@ public class Book extends MongoMappable {
     }
 
     /**
+     * Adds a reader to this book.
+     *
+     * @param user the user to add.
+     */
+    public void addReader(User user) {
+        this.readers.add(user.getUuid());
+    }
+
+    /**
      * Gets the pages of this book. May be empty.
      *
      * @return the pages of the book.
@@ -229,8 +238,8 @@ public class Book extends MongoMappable {
             if (rawPages != null) {
                 if (rawPages instanceof Map<?,?> rawMap) {
                     if (!rawMap.isEmpty()) {
-                        for (int i = 0; i < 100; i++) {
-                            Object uncastedPage = rawMap.get(i);
+                        for (int i = 1; i < 100; i++) {
+                            Object uncastedPage = rawMap.get(String.valueOf(i));
                             if (uncastedPage == null)
                                 break;
                             try {
@@ -262,7 +271,7 @@ public class Book extends MongoMappable {
         map.put("readers", this.readers);
         Map<String, Object> pages = new LinkedHashMap<>();
         for (Map.Entry<Integer, Page> entry : this.pages.entrySet())
-            pages.put(entry.getKey().toString(), entry.getValue().serialize());
+            pages.put(String.valueOf(entry.getKey()), entry.getValue().serialize());
         map.put("pages", pages);
         return map;
     }

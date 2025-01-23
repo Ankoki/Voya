@@ -23,6 +23,7 @@ import javax.net.ssl.HttpsURLConnection;
 
 import lombok.SneakyThrows;
 import mx.kenzie.argo.Json;
+import mx.kenzie.argo.meta.JsonException;
 import us.byeol.voya.auth.PasswordHasher;
 import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
@@ -279,10 +280,8 @@ public class IOHandler {
             CompletableFuture<Optional<String>> future = web.execute();
             while (!future.isDone()) {}
             Optional<String> response = future.get();
-            if (response.isPresent()) {
-                Log.debug(response.get());
+            if (response.isPresent())
                 return true;
-            }
             return true;
         } catch (IOException ex) { Log.error(ex); }
         return false;
@@ -312,11 +311,16 @@ public class IOHandler {
                     .addHeader("uuid", uuid);
             Optional<String> response = web.execute().get();
             if (response.isPresent()) {
-                Book book = Book.deserialize(Json.fromJson(response.get()));
-                if (!book.isValid())
-                    return null;
-                this.bookCache.add(book);
-                return book;
+                try {
+                    Book book = Book.deserialize(Json.fromJson(response.get()));
+                    if (!book.isValid())
+                        return null;
+                    this.bookCache.add(book);
+                    return book;
+                } catch (JsonException ex) {
+                    Log.error("Response is invalid: " + response.get());
+                    return Book.deserialize(new LinkedHashMap<>());
+                }
             }
         } catch (IOException ex) { Log.error(ex); }
         return null;
@@ -362,10 +366,8 @@ public class IOHandler {
             CompletableFuture<Optional<String>> future = web.execute();
             while (!future.isDone()) {}
             Optional<String> response = future.get();
-            if (response.isPresent()) {
-                Log.debug(response.get());
+            if (response.isPresent())
                 return true;
-            }
             return true;
         } catch (IOException ex) { Log.error(ex); }
         return false;

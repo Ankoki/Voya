@@ -18,13 +18,13 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 import org.jetbrains.annotations.Nullable;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import us.byeol.voya.R;
 import us.byeol.voya.api.Book;
 import us.byeol.voya.api.Page;
 import us.byeol.voya.api.User;
+import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
 import us.byeol.voya.misc.VoyaFactory;
 import us.byeol.voya.misc.popup.PopUp;
@@ -80,6 +80,7 @@ public class PageActivity extends AppCompatActivity {
      * @param index the index of the page.
      */
     public void displayPage(Book book, int index) {
+        Log.debug(book.toString());
         this.setContentView(R.layout.activity_page);
         this.coordinator = this.findViewById(R.id.coordinator);
         ImageButton backButton = this.findViewById(R.id.back_button);
@@ -105,7 +106,7 @@ public class PageActivity extends AppCompatActivity {
                 pageContent.setText(content);
             ImageButton previousPage = this.findViewById(R.id.previous_page);
             previousPage.setOnClickListener(event -> {
-                if (book.getPages().size() <= (index - 1))
+                if ((index - 1) > 0)
                     this.displayPage(book, index - 1);
                 else
                     PopUp.instance.showText(this.coordinator, "This is the first page.", PopUp.Length.LENGTH_SHORT);
@@ -136,6 +137,7 @@ public class PageActivity extends AppCompatActivity {
                                             .setPositiveButton("Done", (innerDialogue, id) -> {
                                                 String edited = String.valueOf(editBox.getText());
                                                 book.setTitle(edited);
+                                                this.displayPage(book, index);
                                             })
                                             .setNegativeButton("Cancel", (innerDialogue, id) -> innerDialogue.cancel())
                                             .show();
@@ -150,6 +152,7 @@ public class PageActivity extends AppCompatActivity {
                                                 page.setTitle(edited);
                                                 book.fetchUpdates();
                                                 book.pushChanges(); // Pages aren't attached to books and must be fetched and pushed as a part of them.
+                                                this.displayPage(book, index);
                                             })
                                             .setNegativeButton("Cancel", (innerDialogue, id) -> innerDialogue.cancel())
                                             .show();
@@ -164,6 +167,7 @@ public class PageActivity extends AppCompatActivity {
                                                 page.setContent(edited);
                                                 book.fetchUpdates();
                                                 book.pushChanges(); // Pages aren't attached to books and must be fetched and pushed as a part of them.
+                                                this.displayPage(book, index);
                                             })
                                             .setNegativeButton("Cancel", (innerDialogue, id) -> innerDialogue.cancel())
                                             .show();
@@ -214,11 +218,12 @@ public class PageActivity extends AppCompatActivity {
                                     contentBox.setHint("Content");
                                     new AlertDialog.Builder(this)
                                             .setTitle("New Page")
-                                            .setView(layout)
+                                            .setView(pageLayout)
                                             .setPositiveButton("Create", (innerDialogue, id) -> {
                                                 String newTitle = String.valueOf(titleBox.getText());
                                                 String newContent = String.valueOf(contentBox.getText());
-                                                book.appendPage(VoyaFactory.createPage("null", newTitle, newContent, user));
+                                                book.appendPage(VoyaFactory.createPage(null, newTitle, newContent, user));
+                                                this.displayPage(book, book.getPages().size());
                                             })
                                             .setNegativeButton("Cancel", (innerDialogue, id) -> innerDialogue.cancel())
                                             .show();

@@ -39,7 +39,7 @@ public class Page extends MongoMappable {
     private String title,
             content,
             photoPath;
-    private User pageAuthor;
+    private String pageAuthor;
 
     /**
      * Gets the title of this page.
@@ -103,7 +103,7 @@ public class Page extends MongoMappable {
             this.pagePhoto = IOHandler.getInstance().getImage(IOHandler.PAGE_IMAGE, this.photoPath);
         String pageAuthor = Misc.castKey(map, "author", String.class);
         if (pageAuthor != null)
-            this.pageAuthor = IOHandler.getInstance().fetchUser(pageAuthor);
+            this.pageAuthor = pageAuthor;
         return true;
     }
 
@@ -122,7 +122,7 @@ public class Page extends MongoMappable {
     @Override
     public Map<String, Object> serialize() {
         Map<String, Object> map = new LinkedHashMap<>();
-        map.put("page-photo", this.photoPath == null ? "null" : this.pagePhoto);
+        map.put("page-photo", this.photoPath);
         map.put("title", this.title);
         map.put("content", this.content);
         map.put("author", this.pageAuthor);

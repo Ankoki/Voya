@@ -262,6 +262,19 @@ public class User extends MongoMappable {
         this.pushChanges();
     }
 
+    /**
+     * Removes a book invite from the user.
+     *
+     * @param bookInvites the books a user has removed the invite for.
+     */
+    public void removeBookInvite(Book... bookInvites) {
+        if (bookInvites == null || bookInvites.length == 0)
+            return;
+        this.fetchUpdates();
+        this.bookInvites.removeAll(Arrays.asList(bookInvites));
+        this.pushChanges();
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     protected boolean mapResponse(Map<String, Object> map) {
@@ -296,7 +309,7 @@ public class User extends MongoMappable {
             if (books != null) {
                 for (String uuid : books) {
                     Book book = IOHandler.getInstance().fetchBook(uuid);
-                    if (book.isValid())
+                    if (book != null && book.isValid())
                         this.books.add(book);
                 }
             }
@@ -306,7 +319,7 @@ public class User extends MongoMappable {
             if (bookInvites != null) {
                 for (String invite : bookInvites) {
                     Book book = IOHandler.getInstance().fetchBook(invite);
-                    if (book.isValid())
+                    if (book != null && book.isValid())
                         this.addBookInvite(book);
                 }
             }

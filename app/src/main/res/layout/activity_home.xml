@@ -105,9 +105,10 @@
                 android:id="@+id/home_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:contentDescription="@string/home_button_desc"
+                android:layout_marginStart="20dp"
                 android:background="@drawable/home_rp"
-                android:layout_marginStart="20dp"/>
+                android:contentDescription="@string/home_button_desc"
+                android:visibility="invisible" />
 
             <ImageButton
                 android:id="@+id/new_button"
@@ -122,13 +123,15 @@
                 android:id="@+id/profile_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:contentDescription="@string/profile_button_desc"
-                android:background="@drawable/profile_rp"
                 android:layout_gravity="end"
-                android:layout_marginEnd="20dp"/>
+                android:layout_marginEnd="20dp"
+                android:background="@drawable/profile_rp"
+                android:contentDescription="@string/profile_button_desc"
+                android:visibility="invisible" />
 
 
         </com.google.android.material.bottomappbar.BottomAppBar>
+
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
 </LinearLayout>
