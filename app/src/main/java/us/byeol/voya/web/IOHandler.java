@@ -41,9 +41,9 @@ public class IOHandler {
     private static IOHandler instance = null;
 
     /**
-     * Returns the instance of the class that has been initiated last. 
+     * Returns the instance of the class that has been initiated last.
      * <br>
-     * If you have called the {@link IOHandler#initiate(String, String)} method, 
+     * If you have called the {@link IOHandler#initiate(String, String)} method,
      * you can assert this is not null.
      *
      * @return the instance.
@@ -51,7 +51,7 @@ public class IOHandler {
     public static IOHandler getInstance() {
         return IOHandler.instance;
     }
-    
+
     /**
      * Initiates the connection to our MongoDB and allows the use of the rest of this class.
      *
@@ -73,7 +73,9 @@ public class IOHandler {
         this.voyaToken = voyaToken;
         try {
             this.dropboxDownload = new URL("https://content.dropboxapi.com/2/files/download");
-        } catch (IOException ex) { Log.error(ex); }
+        } catch (IOException ex) {
+            Log.error(ex);
+        }
     }
 
     //</editor-fold>
@@ -110,7 +112,8 @@ public class IOHandler {
                     .addHeader("authorization", this.voyaToken)
                     .addHeader("username", username);
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {}
+            while (!future.isDone()) {
+            }
             Optional<String> response = future.get();
             if (response.isPresent()) {
                 Map<String, Object> map = Json.fromJson(response.get());
@@ -127,7 +130,7 @@ public class IOHandler {
     /**
      * Checks if the given password is correct for the given user.
      *
-     * @param uuid the uuid of the user.
+     * @param uuid  the uuid of the user.
      * @param input the password to check.
      * @return true if correct.
      * @throws GeneralSecurityException if the algorithm is not found or the key specification is invalid.
@@ -143,7 +146,8 @@ public class IOHandler {
                     .addHeader("authorization", this.voyaToken)
                     .addHeader("uuid", uuid);
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {}
+            while (!future.isDone()) {
+            }
             Optional<String> response = future.get();
             if (response.isPresent()) {
                 Map<String, Object> json = Json.fromJson(response.get());
@@ -164,8 +168,8 @@ public class IOHandler {
     /**
      * Registers a user to the database and returns the created user.
      *
-     * @param fullName the full name of the user.
-     * @param username the username.
+     * @param fullName       the full name of the user.
+     * @param username       the username.
      * @param hashedPassword the hashed password.
      * @return the registered user. May be null.
      */
@@ -189,11 +193,12 @@ public class IOHandler {
             WebRequest uuidRequest = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/update-uuid-username", WebRequest.RequestType.POST)
                     .addHeader("Content-Type", "application/json")
                     .addHeader("authorization", this.voyaToken)
-                    .addHeader("User-Agent","Mozilla/5.0 ( compatible ) ")
+                    .addHeader("User-Agent", "Mozilla/5.0 ( compatible ) ")
                     .addHeader("Accept", "*/*")
                     .addParameter(Map.of(username, uuid));
             CompletableFuture<Optional<String>> future = uuidRequest.execute();
-            while (!future.isDone()) {}
+            while (!future.isDone()) {
+            }
         } catch (IOException ex) {
             Log.error(ex);
             return null;
@@ -233,7 +238,9 @@ public class IOHandler {
                 this.userCache.add(user);
                 return user;
             }
-        } catch (IOException ex) { Log.error(ex); }
+        } catch (IOException ex) {
+            Log.error(ex);
+        }
         return null;
     }
 
@@ -257,7 +264,9 @@ public class IOHandler {
                 json.remove("password");
                 return json;
             }
-        } catch (IOException ex) { Log.error(ex); }
+        } catch (IOException ex) {
+            Log.error(ex);
+        }
         return null;
     }
 
@@ -271,19 +280,30 @@ public class IOHandler {
     @SneakyThrows
     public boolean pushUserdata(String username, Map<String, Object> userdata) {
         try {
+            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/fetch-userdata/", WebRequest.RequestType.GET)
+                    .addHeader(Pair.create("Content-Type", "application/json"))
+                    .addHeader(Pair.create("authorization", this.voyaToken))
+                    .addHeader("uuid", (String) userdata.get("uuid"));
+            Optional<String> response = web.execute().get();
+            if (response.isPresent()) {
+                Map<String, Object> json = Json.fromJson(response.get());
+                userdata.put("password", json.get("password"));
+            }
             Map<String, Object> parent = new LinkedHashMap<>();
             parent.put(username, userdata);
-            WebRequest web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/push-userdata", WebRequest.RequestType.POST)
+            web = new WebRequest("https://voya-backend-cfb21ea1f03f.herokuapp.com/push-userdata", WebRequest.RequestType.POST)
                     .addHeader(Pair.create("Content-Type", "application/json"))
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter(parent);
             CompletableFuture<Optional<String>> future = web.execute();
             while (!future.isDone()) {}
-            Optional<String> response = future.get();
+            response = future.get();
             if (response.isPresent())
                 return true;
-            return true;
-        } catch (IOException ex) { Log.error(ex); }
+            return false;
+        } catch (IOException ex) {
+            Log.error(ex);
+        }
         return false;
     }
 
@@ -322,7 +342,9 @@ public class IOHandler {
                     return Book.deserialize(new LinkedHashMap<>());
                 }
             }
-        } catch (IOException ex) { Log.error(ex); }
+        } catch (IOException ex) {
+            Log.error(ex);
+        }
         return null;
     }
 
@@ -343,14 +365,16 @@ public class IOHandler {
             Optional<String> response = web.execute().get();
             if (response.isPresent())
                 return Json.fromJson(response.get());
-        } catch (IOException ex) { Log.error(ex); }
+        } catch (IOException ex) {
+            Log.error(ex);
+        }
         return null;
     }
 
     /**
      * Pushes a book's data to the database.
      *
-     * @param uuid the books uuid.
+     * @param uuid     the books uuid.
      * @param bookdata the result of {@link Book#serialize()}, or a copy.
      * @return true if successful.
      */
@@ -364,12 +388,15 @@ public class IOHandler {
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addParameter(parent);
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {}
+            while (!future.isDone()) {
+            }
             Optional<String> response = future.get();
             if (response.isPresent())
                 return true;
             return true;
-        } catch (IOException ex) { Log.error(ex); }
+        } catch (IOException ex) {
+            Log.error(ex);
+        }
         return false;
     }
 
@@ -386,7 +413,8 @@ public class IOHandler {
                     .addHeader(Pair.create("authorization", this.voyaToken))
                     .addHeader(Pair.create("username", username));
             CompletableFuture<Optional<String>> future = web.execute();
-            while (!future.isDone()) {}
+            while (!future.isDone()) {
+            }
             Optional<String> response = future.get();
             if (response.isPresent()) {
                 return Misc.castKey(Json.fromJson(response.get()), "uuid", String.class);
@@ -407,7 +435,9 @@ public class IOHandler {
      * @return the data of the image. If any errors are logged, will return nothing.
      */
     public byte[] getImage(String folderName, String imageName) {
-        // TODO FIX
+        // TODO FIX disabled for now.
+        if (true)
+            return new byte[0];
         CompletableFuture<byte[]> future = CompletableFuture.supplyAsync(() -> {
             try {
                 HttpsURLConnection connection = (HttpsURLConnection) this.dropboxDownload.openConnection();
@@ -433,7 +463,8 @@ public class IOHandler {
             }
             return new byte[0];
         });
-        while (!future.isDone()) {}
+        while (!future.isDone()) {
+        }
         try {
             return future.get();
         } catch (InterruptedException | ExecutionException ex) {

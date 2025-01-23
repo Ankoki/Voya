@@ -26,6 +26,7 @@ import com.google.android.material.tabs.TabLayout.Tab;
 import java.util.UUID;
 
 import us.byeol.voya.R;
+import us.byeol.voya.activities.auth.LoginActivity;
 import us.byeol.voya.api.Page;
 import us.byeol.voya.auth.AuthValidator;
 import us.byeol.voya.misc.Misc;
@@ -120,6 +121,17 @@ public class HomeActivity extends AppCompatActivity {
 
         BottomAppBar appBar = findViewById(R.id.floating_navigation_bar);
         appBar.setBackground(this.getDrawable(R.drawable.voya_nav_bar));
+        ImageButton logOut = appBar.findViewById(R.id.home_button);
+        logOut.setOnClickListener(event -> {
+            new AlertDialog.Builder(this)
+                    .setTitle("Log Out?")
+                    .setPositiveButton("Yes", (dialog, id) -> {
+                        preferences.edit().putString("current-uuid", "").apply();
+                        this.startActivity(new Intent(this.getBaseContext(), LoginActivity.class));
+                    })
+                    .setNegativeButton("No", (dialog, id) -> dialog.cancel())
+                    .show();
+        });
         ImageButton newPage = appBar.findViewById(R.id.new_button);
         newPage.setOnClickListener(event -> {
             LayoutInflater inflater = this.getLayoutInflater();
@@ -152,7 +164,8 @@ public class HomeActivity extends AppCompatActivity {
                     .setNegativeButton("Cancel", (dialog, id) -> dialog.cancel())
                     .show();
         });
-
+        ImageButton inviteButton = appBar.findViewById(R.id.profile_button);
+        inviteButton.setOnClickListener(event -> tab.getTabAt(1).select());
     }
 
     /**

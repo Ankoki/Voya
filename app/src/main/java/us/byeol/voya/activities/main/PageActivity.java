@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -97,6 +98,8 @@ public class PageActivity extends AppCompatActivity {
             pagePhoto.setImageDrawable(null);
             if (photo != null)
                 pagePhoto.setImageBitmap(photo);
+            else
+                pagePhoto.setVisibility(View.GONE);
             String title = page.getTitle();
             TextView pageTitle = this.findViewById(R.id.page_title);
             pageTitle.setText(title);

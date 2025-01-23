@@ -15,6 +15,7 @@ import java.security.GeneralSecurityException;
 import us.byeol.voya.R;
 import us.byeol.voya.activities.main.HomeActivity;
 import us.byeol.voya.auth.AuthValidator;
+import us.byeol.voya.auth.PasswordHasher;
 import us.byeol.voya.misc.Log;
 import us.byeol.voya.misc.Misc;
 import us.byeol.voya.misc.popup.PopUp;
@@ -29,7 +30,11 @@ public class LoginActivity extends AppCompatActivity {
         Misc.setStatusBarColour(this.getWindow(), this.getResources().getColor(R.color.sage_green));
         this.setContentView(R.layout.activity_login);
         this.findViewById(R.id.root).setZ(-100F);
-
+        try {
+            Log.debug(new PasswordHasher().hash("T3stP4ssw0rd!"));
+        } catch (GeneralSecurityException ex) {
+            ex.printStackTrace();
+        }
         authentication_button : {
             EditText usernameInput = this.findViewById(R.id.username_field);
             EditText passwordInput = this.findViewById(R.id.password_field);
